@@ -37,7 +37,7 @@ export default function SignupScreen() {
 
         <Pressable
             style={styles.secondaryButton}
-            onPress={() => router.push("/home")}
+            onPress={() => router.push("/login")}
         >
             <Text style={styles.secondaryButtonText}>Create Account</Text>
         </Pressable>
