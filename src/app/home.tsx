@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { router } from "expo-router";
 import {
   Pressable,
   ScrollView,
+
   StyleSheet,
   Text,
   TextInput,
@@ -9,7 +11,51 @@ import {
 } from "react-native";
 
 export default function HomeScreen() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
+    <View style={styles.page}>
+      <Pressable style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
+        <View style={styles.menuLine} />
+        <View style={styles.menuLine} />
+        <View style={styles.menuLine} />
+      </Pressable>
+
+      {menuOpen && (
+        <View style={styles.dropdown}>
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setMenuOpen(false);
+              router.push("/home");
+            }}
+          >
+            <Text style={styles.dropdownText}>Home</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setMenuOpen(false);
+              router.push("/feedback");
+            }}
+          >
+            <Text style={styles.dropdownText}>Feedback</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setMenuOpen(false);
+              router.push("/mock-interview");
+            }}
+          >
+            <Text style={styles.dropdownText}>Mock Interview</Text>
+          </Pressable>
+        </View>
+      )}
+    
+    
     <ScrollView style={styles.page}>
       <View style={styles.container}>
         <Text style={styles.title}>Welcome Back!</Text>
@@ -42,6 +88,7 @@ export default function HomeScreen() {
         </Pressable>
       </View>
     </ScrollView>
+  </View>
   );
 }
 
@@ -107,5 +154,47 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 16,
+  },
+    menuButton: {
+    position: "absolute",
+    top: 60,
+    left: 24,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    gap: 5,
+    zIndex: 10,
+  },
+  menuLine: {
+    height: 3,
+    width: 24,
+    borderRadius: 2,
+    backgroundColor: "#27245C",
+  },
+    dropdown: {
+    position: "absolute",
+    top: 105,
+    left: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DFE2EA",
+    paddingVertical: 6,
+    minWidth: 180,
+    zIndex: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  dropdownText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#27245C",
   },
 });
