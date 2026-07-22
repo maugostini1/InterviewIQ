@@ -1,22 +1,3 @@
-"""
-InterviewIQ database backend.
-
-A lightweight SQLite data-access layer for the InterviewIQ app. Wraps
-connection handling, schema setup, and CRUD operations for each table
-in the ER diagram: User, Profile, Interview, Question, Answer, Feedback.
-
-Usage:
-    from database import InterviewIQDB
-
-    db = InterviewIQDB("interviewiq.db")
-    user_id = db.create_user("Ada", "Lovelace", "hashed_pw", "ada@example.com")
-    db.close()
-
-    # or as a context manager
-    with InterviewIQDB("interviewiq.db") as db:
-        user = db.get_user_by_email("ada@example.com")
-"""
-
 import sqlite3
 import os
 from contextlib import contextmanager
