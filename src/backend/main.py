@@ -192,34 +192,45 @@ def signup(request: SignupRequest):
 def login(request: LoginRequest) -> AuthResponse:
     email = request.email.strip().lower()
 
-    with InterviewIQDB() as db:
-        stored_user = db.get_user_by_email(email)
+    try:
+        with InterviewIQDB("interviewiq.db") as db:
+            stored_user = db.get_user_by_email(email)
 
-        if stored_user is None or not password_hasher.verify(
-            request.password,
-            stored_user["password_hash"],
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="The email or password is incorrect.",
-            )
+            if stored_user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="The email or password is incorrect.",
+                )
 
-        user = db.get_user_with_profile(stored_user["user_id"])
+            if not password_hasher.verify(
+                request.password,
+                stored_user["password_hash"],
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="The email or password is incorrect.",
+                )
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="The account could not be loaded.",
+            profile = db.get_profile_by_user(stored_user["user_id"])
+
+        user_data = {
+            **stored_user,
+            "career_field": profile["career_field"] if profile else None,
+            "target_job": profile["target_job"] if profile else None,
+        }
+
+        return AuthResponse(
+            access_token=create_access_token(stored_user["user_id"]),
+            user=serialize_user(user_data),
         )
 
-    return AuthResponse(
-        access_token=create_access_token(user["user_id"]),
-        user=serialize_user(user),
-    )
+    except HTTPException:
+        raise
 
+    except Exception as error:
+        print("LOGIN ERROR:", repr(error))
 
-@app.get("/auth/me", response_model=UserResponse)
-def read_current_user(
-    current_user: Annotated[UserResponse, Depends(get_current_user)],
-) -> UserResponse:
-    return current_user
+        raise HTTPException(
+            status_code=500,
+            detail=f"{type(error).__name__}: {error}",
+        ) from error

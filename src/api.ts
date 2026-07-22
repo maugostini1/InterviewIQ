@@ -61,3 +61,60 @@ export async function signupAccount(account: {
 
   return responseData;
 }
+
+type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  user: {
+    user_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+};
+
+export async function loginAccount(
+  credentials: LoginRequest
+): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
+    }),
+  });
+
+  const responseText = await response.text();
+
+  let responseData: any;
+
+  try {
+    responseData = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    responseData = {
+      detail: responseText,
+    };
+  }
+
+  if (!response.ok) {
+    const detail =
+      responseData.detail ||
+      responseData.message ||
+      `Login failed with status ${response.status}`;
+
+    throw new Error(
+      typeof detail === "string" ? detail : JSON.stringify(detail)
+    );
+  }
+
+  return responseData;
+}

@@ -1,56 +1,97 @@
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { loginAccount } from "../api";
 
 export default function LoginScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("Missing information", "Enter your email and password.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const result = await loginAccount({email: email.trim().toLowerCase(), password,});
+      await SecureStore.setItemAsync("access_token", result.access_token);
+      router.replace("/home");
+    } catch (error) {
+      Alert.alert(
+        "Login failed",
+        error instanceof Error ? error.message : "Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+    <View style={styles.page}>
+      <Text style={styles.title}>Log In</Text>
 
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
-        placeholder="you@example.com"
+        value={email}
+        onChangeText={setEmail}
         autoCapitalize="none"
+        autoCorrect={false}
         keyboardType="email-address"
       />
 
       <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        autoCapitalize="none"
         secureTextEntry
+        onSubmitEditing={handleLogin}
       />
 
-      <Pressable style={styles.button} onPress={() => router.push("/home")}>
-        <Text style={styles.buttonText}>Login</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/signup")}>
-        <Text style={styles.link}>Create an account</Text>
+      <Pressable
+        style={[styles.button, isSubmitting && styles.disabledButton]}
+        onPress={handleLogin}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Log In</Text>
+        )}
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
+    justifyContent: "center",
     padding: 24,
     backgroundColor: "#F7F8FC",
   },
   title: {
-    marginTop: 40,
-    marginBottom: 30,
-    alignSelf: "center",
+    marginBottom: 28,
     fontSize: 32,
+    alignSelf: "center",
     fontWeight: "800",
     color: "#27245C",
   },
-  label: {
-    marginBottom: 7,
-    fontWeight: "700",
-    color: "#17172A",
-  },
+  label: { marginBottom: 7, fontWeight: "700", color: "#17172A" },
   input: {
     height: 50,
     marginBottom: 18,
@@ -61,21 +102,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   button: {
-    height: 52,
+    minHeight: 52,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
     backgroundColor: "#6C63FF",
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  link: {
-    marginTop: 22,
-    textAlign: "center",
-    color: "#6C63FF",
-    fontWeight: "600",
-  },
+  disabledButton: { opacity: 0.65 },
+  buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
 });
