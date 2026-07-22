@@ -118,3 +118,28 @@ export async function loginAccount(
 
   return responseData;
 }
+
+import * as SecureStore from "expo-secure-store";
+
+export async function getCurrentUser() {
+  const token = await SecureStore.getItemAsync("access_token");
+
+  if (!token) {
+    throw new Error("Not authenticated.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Unable to load user.");
+  }
+
+  return data;
+}

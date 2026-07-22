@@ -1,17 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { router } from "expo-router";
 import {
   Pressable,
   ScrollView,
-
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [firstName, setFirstName] = useState("");
+
+  useEffect(() => {
+  loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const userString = await SecureStore.getItemAsync("user");
+
+      if (!userString) return;
+
+      const user = JSON.parse(userString);
+
+      setFirstName(user.first_name);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   return (
     <View style={styles.page}>
@@ -52,13 +71,27 @@ export default function HomeScreen() {
           >
             <Text style={styles.dropdownText}>Mock Interview</Text>
           </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setMenuOpen(false);
+              router.push("/");
+            }}
+          >
+            <Text style={styles.dropdownText}>Log Out</Text>
+          </Pressable>
         </View>
       )}
     
     
     <ScrollView style={styles.page}>
       <View style={styles.container}>
-        <Text style={styles.title}>Welcome Back!</Text>
+        <Text style={styles.title}>Welcome Back{firstName ? `, ${firstName}!` : "!"}</Text>
+        
+        <Text style={styles.subtitle}>
+          Ready to ace your next interview?
+        </Text>
 
         <Text style={styles.label}>Interviews</Text>
         <View style={styles.statCard}>
@@ -197,4 +230,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#27245C",
   },
+  subtitle: {
+  fontSize: 18,
+  color: "#666",
+  textAlign: "center",
+  marginBottom: 30,
+},
 });

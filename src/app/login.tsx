@@ -27,6 +27,7 @@ export default function LoginScreen() {
       setIsSubmitting(true);
       const result = await loginAccount({email: email.trim().toLowerCase(), password,});
       await SecureStore.setItemAsync("access_token", result.access_token);
+      await SecureStore.setItemAsync("user", JSON.stringify(result.user));
       router.replace("/home");
     } catch (error) {
       Alert.alert(
