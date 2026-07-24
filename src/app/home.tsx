@@ -11,26 +11,39 @@ import {
 import * as SecureStore from "expo-secure-store";
 
 export default function HomeScreen() {
+  console.log("Home.tsx loaded");
   const [menuOpen, setMenuOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
 
-  useEffect(() => {
-  loadUser();
-  }, []);
-
+useEffect(() => {
   const loadUser = async () => {
     try {
       const userString = await SecureStore.getItemAsync("user");
 
-      if (!userString) return;
+      if (!userString) {
+        console.log("No saved user found");
+        return;
+      }
 
-      const user = JSON.parse(userString);
+      const savedUser = JSON.parse(userString);
 
-      setFirstName(user.first_name);
-    } catch (err) {
-      console.log(err);
+      console.log("Saved user:", savedUser);
+
+      setFirstName(savedUser.first_name ?? "");
+    } catch (error) {
+      console.error("Failed to load saved user:", error);
     }
   };
+
+  loadUser();
+}, []);
+
+  const handleLogout = async () => {
+    await SecureStore.deleteItemAsync("access_token");
+    await SecureStore.deleteItemAsync("user");
+
+    router.replace("/");
+  };  
 
   return (
     <View style={styles.page}>
@@ -74,9 +87,9 @@ export default function HomeScreen() {
 
           <Pressable
             style={styles.dropdownItem}
-            onPress={() => {
+            onPress={async () => {
               setMenuOpen(false);
-              router.push("/");
+              await handleLogout();
             }}
           >
             <Text style={styles.dropdownText}>Log Out</Text>

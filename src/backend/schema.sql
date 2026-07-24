@@ -21,14 +21,18 @@ CREATE TABLE IF NOT EXISTS Profile (
 
 CREATE TABLE IF NOT EXISTS Interview (
     session_id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id              INTEGER NOT NULL,
-    date                  TEXT,
-    time                  TEXT,
-    duration              INTEGER,
-    score                 REAL,
-    session_start_time   TEXT,
-    session_end_time     TEXT,
-    interview_type       TEXT,
+    user_id             INTEGER NOT NULL,
+    date                TEXT,
+    time                TEXT,
+    duration            INTEGER,
+    score               REAL,
+    session_start_time  TEXT,
+    session_end_time    TEXT,
+    interview_type      TEXT,
+    target_job          TEXT,
+    status              TEXT NOT NULL DEFAULT 'active',
+    model_name          TEXT,
+    prompt_version      TEXT DEFAULT 'star-v1',
     FOREIGN KEY (user_id) REFERENCES User (user_id) ON DELETE CASCADE
 );
 
@@ -37,6 +41,8 @@ CREATE TABLE IF NOT EXISTS Question (
     session_id      INTEGER NOT NULL,
     question_text   TEXT NOT NULL,
     question_type   TEXT,
+    question_order  INTEGER NOT NULL DEFAULT 1,
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES Interview (session_id) ON DELETE CASCADE
 );
 
@@ -50,18 +56,27 @@ CREATE TABLE IF NOT EXISTS Answer (
     task_score       REAL,
     action_score     REAL,
     results_score    REAL,
+    total_score      INTEGER,
     response_time    REAL,
+    created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (question_id) REFERENCES Question (question_id) ON DELETE CASCADE,
-    FOREIGN KEY (session_id)  REFERENCES Interview (session_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)     REFERENCES User (user_id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES Interview (session_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES User (user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Feedback (
-    feedback_id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    answer_id         INTEGER NOT NULL UNIQUE,
-    star_score        INTEGER,
-    missing_info      TEXT,
-    suggested_answer  TEXT,
+    feedback_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    answer_id          INTEGER NOT NULL UNIQUE,
+    star_score         INTEGER,
+    missing_info       TEXT,
+    feedback_text      TEXT,
+    strengths          TEXT,
+    improvements       TEXT,
+    suggested_answer   TEXT,
+    model_name         TEXT,
+    prompt_version     TEXT DEFAULT 'star-v1',
+    raw_model_response TEXT,
+    created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (answer_id) REFERENCES Answer (answer_id) ON DELETE CASCADE
 );
 

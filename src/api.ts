@@ -1,4 +1,5 @@
 export const API_BASE_URL = "http://10.0.2.2:8000";
+import * as SecureStore from "expo-secure-store";
 
 export async function signupAccount(account: {
   first_name: string;
@@ -119,8 +120,6 @@ export async function loginAccount(
   return responseData;
 }
 
-import * as SecureStore from "expo-secure-store";
-
 export async function getCurrentUser() {
   const token = await SecureStore.getItemAsync("access_token");
 
@@ -142,4 +141,167 @@ export async function getCurrentUser() {
   }
 
   return data;
+}
+
+export type ResumeUploadResponse = {
+  message: string;
+  filename: string;
+  stored_filename?: string;
+};
+
+export async function uploadResume(
+  file: {
+    uri: string;
+    name: string;
+    mimeType?: string | null;
+  },
+  accessToken: string
+): Promise<ResumeUploadResponse> {
+  const formData = new FormData();
+
+  formData.append(
+    "resume",
+    {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? "application/octet-stream",
+    } as any
+  );
+
+  const response = await fetch(`${API_BASE_URL}/resume/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+  });
+
+  const responseText = await response.text();
+
+  let responseData: any;
+
+  try {
+    responseData = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    responseData = {
+      detail: responseText,
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      responseData.detail ||
+        `Resume upload failed with status ${response.status}`
+    );
+  }
+
+  return responseData;
+}
+
+export type InterviewQuestion = {
+  session_id: number;
+  question_id: number;
+  question: string;
+};
+
+export type StarFeedback = {
+  answer_id: number;
+  total_score: number;
+  scores: {
+    situation: number;
+    task: number;
+    action: number;
+    result: number;
+  };
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
+  suggested_answer: string;
+};
+
+async function getAccessToken(): Promise<string> {
+  const token = await SecureStore.getItemAsync("access_token");
+
+  if (!token) {
+    throw new Error("You must be logged in.");
+  }
+
+  return token;
+}
+
+async function parseApiResponse(response: Response) {
+  const responseText = await response.text();
+
+  console.log("Response status:", response.status);
+  console.log("Response body:", responseText);
+
+  let data: any;
+
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    data = {
+      detail: responseText || "The server returned an invalid response.",
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail ||
+        data.message ||
+        `Request failed with status ${response.status}`
+    );
+  }
+
+  return data;
+}
+
+export async function startMockInterview(
+  targetJob: string
+): Promise<InterviewQuestion> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/start`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        target_job: targetJob,
+      }),
+    }
+  );
+
+  return await parseApiResponse(response);
+}
+
+export async function submitMockInterviewAnswer(
+  sessionId: number,
+  questionId: number,
+  answer: string
+): Promise<StarFeedback> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/answer`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        question_id: questionId,
+        answer,
+      }),
+    }
+  );
+
+  return await parseApiResponse(response);
 }

@@ -2,9 +2,12 @@ import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Optional
-
+from pathlib import Path
+from uuid import uuid4
+import json
+import httpx
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
@@ -13,9 +16,9 @@ from pwdlib import PasswordHash
 from .database import InterviewIQDB
 
 app = FastAPI(title="InterviewIQ API", version="1.0.0")
+OLLAMA_URL = "http://localhost:11434/api/chat"
+OLLAMA_MODEL = "gemma3"
 
-# For local development this permits Expo web and native development clients.
-# Replace with your deployed frontend origins before production.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -90,7 +93,8 @@ def create_access_token(user_id: int) -> str:
 
 def get_current_user(
     credentials: Annotated[
-        Optional[HTTPAuthorizationCredentials], Depends(bearer_scheme)
+        Optional[HTTPAuthorizationCredentials],
+        Depends(bearer_scheme),
     ],
 ) -> UserResponse:
     if credentials is None:
@@ -105,30 +109,44 @@ def get_current_user(
             JWT_SECRET,
             algorithms=[JWT_ALGORITHM],
         )
+
         user_id = int(payload["sub"])
+
     except (jwt.InvalidTokenError, KeyError, TypeError, ValueError) as error:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token.",
         ) from error
 
-    with InterviewIQDB() as db:
-        user = db.get_user_with_profile(user_id)
+    with InterviewIQDB("interviewiq.db") as db:
+        user = db.get_user(user_id)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Account no longer exists.",
-        )
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account no longer exists.",
+            )
 
-    return serialize_user(user)
+        profile = db.get_profile_by_user(user_id)
 
+        user_data = {
+            **user,
+            "career_field": (
+                profile["career_field"] if profile else None
+            ),
+            "target_job": (
+                profile["target_job"] if profile else None
+            ),
+        }
 
+    return serialize_user(user_data)
+
+# used ChatGPT to help as I was encountering a problem with the @app.post function (internal server issues)
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
-
+# stores signup information
 @app.post("/auth/signup", status_code=201)
 def signup(request: SignupRequest):
     email = request.email.strip().lower()
@@ -188,6 +206,7 @@ def signup(request: SignupRequest):
             detail=f"{type(error).__name__}: {error}",
 )
 
+# Handles login requests
 @app.post("/auth/login", response_model=AuthResponse)
 def login(request: LoginRequest) -> AuthResponse:
     email = request.email.strip().lower()
@@ -234,3 +253,432 @@ def login(request: LoginRequest) -> AuthResponse:
             status_code=500,
             detail=f"{type(error).__name__}: {error}",
         ) from error
+
+# For Resume Uploader
+UPLOAD_DIRECTORY = Path(__file__).resolve().parent / "uploads" / "resumes"
+UPLOAD_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_RESUME_TYPES = {
+    "application/pdf": ".pdf",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+}
+
+MAX_RESUME_SIZE = 5 * 1024 * 1024
+
+@app.post("/resume/upload")
+async def upload_resume(
+    resume: UploadFile = File(...),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    if resume.content_type not in ALLOWED_RESUME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF, DOC, and DOCX resumes are allowed.",
+        )
+
+    contents = await resume.read()
+
+    if len(contents) > MAX_RESUME_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The resume must be 5 MB or smaller.",
+        )
+
+    extension = ALLOWED_RESUME_TYPES[resume.content_type]
+
+    stored_filename = (
+        f"user_{current_user.user_id}_{uuid4().hex}{extension}"
+    )
+
+    destination = UPLOAD_DIRECTORY / stored_filename
+
+    destination.write_bytes(contents)
+
+    return {
+        "message": "Your resume was uploaded successfully.",
+        "filename": resume.filename,
+        "stored_filename": stored_filename,
+    }
+
+# for Gemma3 Model. Utilized docs.ollama.com to help with building the model.
+class StartInterviewRequest(BaseModel):
+    target_job: str = Field(min_length=1, max_length=120)
+
+
+class StartInterviewResponse(BaseModel):
+    session_id: int
+    question_id: int
+    question: str
+
+
+class SubmitAnswerRequest(BaseModel):
+    session_id: int
+    question_id: int
+    answer: str = Field(min_length=1)
+
+
+class StarScores(BaseModel):
+    situation: int = Field(ge=0, le=25)
+    task: int = Field(ge=0, le=25)
+    action: int = Field(ge=0, le=25)
+    result: int = Field(ge=0, le=25)
+
+
+class AnswerFeedbackResponse(BaseModel):
+    answer_id: int
+    total_score: int
+    scores: StarScores
+    strengths: list[str]
+    improvements: list[str]
+    feedback: str
+    suggested_answer: str
+
+async def call_gemma(
+    messages: list[dict[str, str]],
+    response_schema: dict,
+) -> dict:
+    payload = {
+        "model": OLLAMA_MODEL,
+        "messages": messages,
+        "stream": False,
+        "format": response_schema,
+        "options": {
+            "temperature": 0.3,
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
+
+        ollama_response = response.json()
+        content = ollama_response["message"]["content"]
+
+        return json.loads(content)
+
+    except httpx.ConnectError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Could not connect to Gemma 3. "
+                "Make sure Ollama is running."
+            ),
+        ) from error
+
+    except httpx.HTTPError as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemma 3 request failed: {error}",
+        ) from error
+
+    except (KeyError, json.JSONDecodeError) as error:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemma 3 returned an invalid response.",
+        ) from error
+    
+#interview questions
+@app.post(
+    "/interviews/start",
+    response_model=StartInterviewResponse,
+)
+async def start_interview(
+    request: StartInterviewRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    question_schema = {
+        "type": "object",
+        "properties": {
+            "question": {"type": "string"},
+        },
+        "required": ["question"],
+    }
+
+    result = await call_gemma(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a professional behavioral interviewer. "
+                    "Generate exactly one realistic behavioral interview "
+                    "question that encourages a STAR-method answer. "
+                    "Do not include an answer, explanation, or numbering."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Target job: {request.target_job}\n"
+                    "Generate one behavioral interview question."
+                ),
+            },
+        ],
+        response_schema=question_schema,
+    )
+
+    question_text = result["question"]
+
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO Interview (
+                user_id,
+                session_start_time,
+                interview_type,
+                target_job,
+                status,
+                model_name
+            )
+            VALUES (?, datetime('now'), ?, ?, ?, ?)
+            """,
+            (
+                current_user.user_id,
+                "behavioral",
+                request.target_job,
+                "active",
+                OLLAMA_MODEL,
+            ),
+        )
+
+        session_id = cursor.lastrowid
+
+        cursor.execute(
+            """
+            INSERT INTO Question (
+                session_id,
+                question_text,
+                question_type,
+                question_order
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                session_id,
+                question_text,
+                "behavioral",
+                1,
+            ),
+        )
+
+        question_id = cursor.lastrowid
+        db.conn.commit()
+
+    return StartInterviewResponse(
+        session_id=session_id,
+        question_id=question_id,
+        question=question_text,
+    )
+
+@app.post(
+    "/interviews/answer",
+    response_model=AnswerFeedbackResponse,
+)
+async def submit_interview_answer(
+    request: SubmitAnswerRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        question_row = cursor.execute(
+            """
+            SELECT q.question_text
+            FROM Question q
+            JOIN Interview i
+              ON i.session_id = q.session_id
+            WHERE q.question_id = ?
+              AND q.session_id = ?
+              AND i.user_id = ?
+            """,
+            (
+                request.question_id,
+                request.session_id,
+                current_user.user_id,
+            ),
+        ).fetchone()
+
+    if question_row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Interview question not found.",
+        )
+
+    question_text = question_row["question_text"]
+
+    feedback_schema = {
+        "type": "object",
+        "properties": {
+            "scores": {
+                "type": "object",
+                "properties": {
+                    "situation": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 25,
+                    },
+                    "task": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 25,
+                    },
+                    "action": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 25,
+                    },
+                    "result": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 25,
+                    },
+                },
+                "required": [
+                    "situation",
+                    "task",
+                    "action",
+                    "result",
+                ],
+            },
+            "strengths": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "improvements": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "feedback": {"type": "string"},
+            "suggested_answer": {"type": "string"},
+        },
+        "required": [
+            "scores",
+            "strengths",
+            "improvements",
+            "feedback",
+            "suggested_answer",
+        ],
+    }
+
+    evaluation = await call_gemma(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are an objective interview coach.
+
+                Evaluate the candidate's answer using the STAR method.
+
+                Score each category from 0 through 25:
+
+                Situation:
+                How clearly the candidate explains the relevant background.
+
+                Task:
+                How clearly the candidate explains their responsibility or goal.
+
+                Action:
+                How specifically the candidate explains the actions they personally took.
+
+                Result:
+                How clearly the candidate explains the outcome, impact, or lesson.
+
+                Do not assume facts that the candidate did not provide.
+                Do not reward invented details.
+                Provide constructive and specific feedback.
+                The suggested answer must preserve the candidate's facts.
+                """,
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Question:\n{question_text}\n\n"
+                    f"Candidate answer:\n{request.answer}"
+                ),
+            },
+        ],
+        response_schema=feedback_schema,
+    )
+
+    scores = evaluation["scores"]
+
+    total_score = (
+        scores["situation"]
+        + scores["task"]
+        + scores["action"]
+        + scores["result"]
+    )
+
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO Answer (
+                question_id,
+                session_id,
+                user_id,
+                response,
+                situation_score,
+                task_score,
+                action_score,
+                results_score,
+                total_score
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                request.question_id,
+                request.session_id,
+                current_user.user_id,
+                request.answer,
+                scores["situation"],
+                scores["task"],
+                scores["action"],
+                scores["result"],
+                total_score,
+            ),
+        )
+
+        answer_id = cursor.lastrowid
+
+        cursor.execute(
+            """
+            INSERT INTO Feedback (
+                answer_id,
+                star_score,
+                feedback_text,
+                strengths,
+                improvements,
+                suggested_answer,
+                model_name,
+                raw_model_response
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                answer_id,
+                total_score,
+                evaluation["feedback"],
+                json.dumps(evaluation["strengths"]),
+                json.dumps(evaluation["improvements"]),
+                evaluation["suggested_answer"],
+                OLLAMA_MODEL,
+                json.dumps(evaluation),
+            ),
+        )
+
+        db.conn.commit()
+
+    return AnswerFeedbackResponse(
+        answer_id=answer_id,
+        total_score=total_score,
+        scores=StarScores(**scores),
+        strengths=evaluation["strengths"],
+        improvements=evaluation["improvements"],
+        feedback=evaluation["feedback"],
+        suggested_answer=evaluation["suggested_answer"],
+    )

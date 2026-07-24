@@ -1,11 +1,101 @@
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, Pressable, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { router } from "expo-router";
+
+import {
+  startMockInterview,
+  StarFeedback,
+  submitMockInterviewAnswer,
+} from "../api";
+
 
 export default function InterviewScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [sessionId, setSessionId] = useState<number | null>(null);
+    const [questionId, setQuestionId] = useState<number | null>(null);
+    const [question, setQuestion] = useState("");
+    const [answer, setAnswer] = useState("");
+    const [feedback, setFeedback] = useState<StarFeedback | null>(null);
+    const [isStarting, setIsStarting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+    const beginInterview = async () => {
+      try {
+        setIsStarting(true);
+
+        // Later, load this from the user's profile.
+        const result = await startMockInterview(
+          "Software Engineer"
+        );
+
+        setSessionId(result.session_id);
+        setQuestionId(result.question_id);
+        setQuestion(result.question);
+      } catch (error) {
+        Alert.alert(
+          "Interview error",
+          error instanceof Error
+            ? error.message
+            : "Unable to start the interview."
+        );
+      } finally {
+        setIsStarting(false);
+      }
+    };
+
+    beginInterview();
+  }, []);
   
-    return (
+  const handleSubmit = async () => {
+  if (!answer.trim()) {
+    Alert.alert(
+      "Answer required",
+      "Enter an answer before submitting."
+    );
+    return;
+  }
+
+  if (sessionId === null || questionId === null) {
+    Alert.alert(
+      "Interview unavailable",
+      "The interview has not loaded yet."
+    );
+    return;
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const result = await submitMockInterviewAnswer(
+      sessionId,
+      questionId,
+      answer.trim()
+    );
+
+    setFeedback(result);
+  } catch (error) {
+    Alert.alert(
+      "Evaluation error",
+      error instanceof Error
+        ? error.message
+        : "Unable to evaluate the answer."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+  return (
     <View style={styles.page}>
       <Pressable style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
         <View style={styles.menuLine} />
@@ -50,24 +140,37 @@ export default function InterviewScreen() {
       <Text style={styles.title}>Mock Interview</Text>
 
       <View style={styles.questionArea}>
-        <Text style={styles.questionText}>
-          What is your greatest strength?
-        </Text>
+        {isStarting ? (
+          <ActivityIndicator size="large" />
+        ) : (
+          <Text style={styles.questionText}>
+            {question}
+          </Text>
+        )}
       </View>
 
       <View style={styles.bottomSection}>
-        <Text style={styles.label}>Answer</Text>
         <TextInput
           style={styles.input}
+          value={answer}
+          onChangeText={setAnswer}
           multiline
-          placeholder="Type your answer..."
+          textAlignVertical="top"
+          placeholder="Describe the situation, task, action, and result..."
         />
       <View style={styles.buttonRow}>
         <Pressable
           style={styles.secondaryButton}
-          onPress={() => router.push("/mock-interview")}
+          onPress={handleSubmit}
+          disabled={isSubmitting || isStarting}
         >
-          <Text style={styles.secondaryButtonText}>Submit</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.secondaryButtonText}>
+              Submit
+            </Text>
+          )}
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
@@ -183,4 +286,5 @@ const styles = StyleSheet.create({
   buttonRow: {
   gap: 12,
 },
+
 });
