@@ -1,3 +1,5 @@
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -8,8 +10,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { loginAccount } from "../api";
 
 export default function LoginScreen() {
@@ -25,14 +25,17 @@ export default function LoginScreen() {
 
     try {
       setIsSubmitting(true);
-      const result = await loginAccount({email: email.trim().toLowerCase(), password,});
+      const result = await loginAccount({
+        email: email.trim().toLowerCase(),
+        password,
+      });
       await SecureStore.setItemAsync("access_token", result.access_token);
       await SecureStore.setItemAsync("user", JSON.stringify(result.user));
       router.replace("/home");
     } catch (error) {
       Alert.alert(
         "Login failed",
-        error instanceof Error ? error.message : "Please try again."
+        error instanceof Error ? error.message : "Please try again.",
       );
     } finally {
       setIsSubmitting(false);
