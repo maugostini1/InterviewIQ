@@ -12,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from pwdlib import PasswordHash
-
-from .database import InterviewIQDB
+import traceback
+from database import InterviewIQDB
 
 app = FastAPI(title="InterviewIQ API", version="1.0.0")
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -388,84 +388,118 @@ async def start_interview(
     request: StartInterviewRequest,
     current_user: UserResponse = Depends(get_current_user),
 ):
-    question_schema = {
-        "type": "object",
-        "properties": {
-            "question": {"type": "string"},
-        },
-        "required": ["question"],
-    }
+    try:
+        print("1. Starting interview")
+        print("User:", current_user.user_id)
+        print("Target job:", request.target_job)
 
-    result = await call_gemma(
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a professional behavioral interviewer. "
-                    "Generate exactly one realistic behavioral interview "
-                    "question that encourages a STAR-method answer. "
-                    "Do not include an answer, explanation, or numbering."
-                ),
+        question_schema = {
+            "type": "object",
+            "properties": {
+                "question": {"type": "string"},
             },
-            {
-                "role": "user",
-                "content": (
-                    f"Target job: {request.target_job}\n"
-                    "Generate one behavioral interview question."
-                ),
-            },
-        ],
-        response_schema=question_schema,
-    )
+            "required": ["question"],
+        }
 
-    question_text = result["question"]
+        print("2. Calling Gemma")
 
-    with InterviewIQDB("interviewiq.db") as db:
-        cursor = db.conn.cursor()
-
-        cursor.execute(
-            """
-            INSERT INTO Interview (
-                user_id,
-                session_start_time,
-                interview_type,
-                target_job,
-                status,
-                model_name
-            )
-            VALUES (?, datetime('now'), ?, ?, ?, ?)
-            """,
-            (
-                current_user.user_id,
-                "behavioral",
-                request.target_job,
-                "active",
-                OLLAMA_MODEL,
-            ),
+        result = await call_gemma(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a professional behavioral interviewer. "
+                        "Generate exactly one realistic behavioral interview "
+                        "question that encourages a STAR-method answer."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Target job: {request.target_job}\n"
+                        "Generate one behavioral interview question."
+                    ),
+                },
+            ],
+            response_schema=question_schema,
         )
 
-        session_id = cursor.lastrowid
+        print("3. Gemma result:", result)
 
-        cursor.execute(
-            """
-            INSERT INTO Question (
-                session_id,
-                question_text,
-                question_type,
-                question_order
+        question_text = result["question"]
+
+        print("4. Opening database")
+
+        with InterviewIQDB("interviewiq.db") as db:
+            cursor = db.conn.cursor()
+
+            print("5. Inserting interview")
+
+            cursor.execute(
+                """
+                INSERT INTO Interview (
+                    user_id,
+                    session_start_time,
+                    interview_type,
+                    target_job,
+                    status,
+                    model_name
+                )
+                VALUES (?, datetime('now'), ?, ?, ?, ?)
+                """,
+                (
+                    current_user.user_id,
+                    "behavioral",
+                    request.target_job,
+                    "active",
+                    OLLAMA_MODEL,
+                ),
             )
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                session_id,
-                question_text,
-                "behavioral",
-                1,
-            ),
+
+            session_id = cursor.lastrowid
+
+            print("6. Inserting question")
+
+            cursor.execute(
+                """
+                INSERT INTO Question (
+                    session_id,
+                    question_text,
+                    question_type,
+                    question_order
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    question_text,
+                    "behavioral",
+                    1,
+                ),
+            )
+
+            question_id = cursor.lastrowid
+            db.conn.commit()
+
+        print("7. Interview created successfully")
+
+        return StartInterviewResponse(
+            session_id=session_id,
+            question_id=question_id,
+            question=question_text,
         )
 
-        question_id = cursor.lastrowid
-        db.conn.commit()
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        print("START INTERVIEW ERROR:", repr(error))
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"{type(error).__name__}: {error}",
+        ) from error
 
     return StartInterviewResponse(
         session_id=session_id,
