@@ -305,3 +305,4 @@ export async function submitMockInterviewAnswer(
 
   return await parseApiResponse(response);
 }
+

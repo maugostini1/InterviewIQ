@@ -62,6 +62,14 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
 
+class ProfileResponse(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    career_field: Optional[str] = None
+    target_job: Optional[str] = None
+    resume_filename: Optional[str] = None
 
 def normalize_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -295,11 +303,60 @@ async def upload_resume(
 
     destination.write_bytes(contents)
 
+    with InterviewIQDB("interviewiq.db") as db:
+        profile = db.get_profile_by_user(current_user.user_id)
+
+        if profile is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Profile was not found.",
+            )
+
+        # Remove the user's previous stored resume when replacing it.
+        previous_path = profile.get("resume_path")
+
+        if previous_path:
+            previous_file = Path(previous_path)
+
+            if previous_file.exists():
+                try:
+                    previous_file.unlink()
+                except OSError:
+                    # Do not fail the new upload just because cleanup failed.
+                    pass
+
+        db.update_profile(
+            profile["profile_id"],
+            resume_path=str(destination),
+            resume_filename=resume.filename,
+        )
+
     return {
         "message": "Your resume was uploaded successfully.",
         "filename": resume.filename,
         "stored_filename": stored_filename,
-    }
+        }
+
+@app.get("/profile", response_model=ProfileResponse)
+def get_profile(
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        profile = db.get_profile_by_user(current_user.user_id)
+
+    return ProfileResponse(
+        user_id=current_user.user_id,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        email=current_user.email,
+        career_field=current_user.career_field,
+        target_job=current_user.target_job,
+        resume_filename=(
+            profile["resume_filename"]
+            if profile
+            else None
+        ),
+    )
 
 # for Gemma3 Model. Utilized docs.ollama.com to help with building the model.
 class StartInterviewRequest(BaseModel):

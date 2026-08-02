@@ -59,10 +59,10 @@ useEffect(() => {
             style={styles.dropdownItem}
             onPress={() => {
               setMenuOpen(false);
-              router.push("/home");
+              router.push("/profile");
             }}
           >
-            <Text style={styles.dropdownText}>Home</Text>
+            <Text style={styles.dropdownText}>Profile</Text>
           </Pressable>
 
           <Pressable

@@ -25,22 +25,34 @@ export default function LoginScreen() {
 
     try {
       setIsSubmitting(true);
-      const result = await loginAccount({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      await SecureStore.setItemAsync("access_token", result.access_token);
-      await SecureStore.setItemAsync("user", JSON.stringify(result.user));
-      router.replace("/home");
-    } catch (error) {
-      Alert.alert(
-        "Login failed",
-        error instanceof Error ? error.message : "Please try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
+    const result = await loginAccount({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    await SecureStore.setItemAsync(
+      "access_token",
+      result.access_token
+    );
+
+    await SecureStore.setItemAsync(
+      "user",
+      JSON.stringify(result.user)
+    );
+
+    router.replace("/home");
+  } catch (error) {
+    Alert.alert(
+      "Login failed",
+      error instanceof Error
+        ? error.message
+        : "Unable to verify the account."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <View style={styles.page}>
