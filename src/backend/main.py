@@ -71,6 +71,48 @@ class ProfileResponse(BaseModel):
     target_job: Optional[str] = None
     resume_filename: Optional[str] = None
 
+# for Gemma3 Model. Utilized docs.ollama.com to help with building the model.
+class StartInterviewRequest(BaseModel):
+    target_job: str = Field(min_length=1, max_length=120)
+
+
+class InterviewQuestionResponse(BaseModel):
+    question_id: int
+    question_order: int
+    question: str
+
+class StartInterviewResponse(BaseModel):
+    session_id: int
+    questions: list[InterviewQuestionResponse]
+
+
+class SubmitAnswerRequest(BaseModel):
+    session_id: int
+    question_id: int
+    answer: str = Field(min_length=1)
+
+
+class StarScores(BaseModel):
+    situation: int = Field(ge=0, le=25)
+    task: int = Field(ge=0, le=25)
+    action: int = Field(ge=0, le=25)
+    result: int = Field(ge=0, le=25)
+
+
+class AnswerFeedbackResponse(BaseModel):
+    answer_id: int
+    total_score: int
+    scores: StarScores
+    strengths: list[str]
+    improvements: list[str]
+    feedback: str
+    suggested_answer: str
+
+class CompleteInterviewResponse(BaseModel):
+    session_id: int
+    status: str
+    average_score: float
+
 def normalize_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
@@ -358,39 +400,6 @@ def get_profile(
         ),
     )
 
-# for Gemma3 Model. Utilized docs.ollama.com to help with building the model.
-class StartInterviewRequest(BaseModel):
-    target_job: str = Field(min_length=1, max_length=120)
-
-
-class StartInterviewResponse(BaseModel):
-    session_id: int
-    question_id: int
-    question: str
-
-
-class SubmitAnswerRequest(BaseModel):
-    session_id: int
-    question_id: int
-    answer: str = Field(min_length=1)
-
-
-class StarScores(BaseModel):
-    situation: int = Field(ge=0, le=25)
-    task: int = Field(ge=0, le=25)
-    action: int = Field(ge=0, le=25)
-    result: int = Field(ge=0, le=25)
-
-
-class AnswerFeedbackResponse(BaseModel):
-    answer_id: int
-    total_score: int
-    scores: StarScores
-    strengths: list[str]
-    improvements: list[str]
-    feedback: str
-    suggested_answer: str
-
 async def call_gemma(
     messages: list[dict[str, str]],
     response_schema: dict,
@@ -401,19 +410,46 @@ async def call_gemma(
         "stream": False,
         "format": response_schema,
         "options": {
-            "temperature": 0.3,
+            "temperature": 0.1,
         },
     }
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(OLLAMA_URL, json=payload)
+        async with httpx.AsyncClient(timeout=180.0) as client:
+            response = await client.post(
+                OLLAMA_URL,
+                json=payload,
+            )
+
             response.raise_for_status()
 
         ollama_response = response.json()
-        content = ollama_response["message"]["content"]
 
-        return json.loads(content)
+        content = ollama_response["message"]["content"].strip()
+
+        print("RAW GEMMA CONTENT:")
+        print(content)
+
+        # Remove markdown fences if Gemma adds them.
+        if content.startswith("```json"):
+            content = content[len("```json"):]
+
+        elif content.startswith("```"):
+            content = content[len("```"):]
+
+        if content.endswith("```"):
+            content = content[:-3]
+
+        content = content.strip()
+
+        parsed = json.loads(content)
+
+        if not isinstance(parsed, dict):
+            raise ValueError(
+                "Gemma response was not a JSON object."
+            )
+
+        return parsed
 
     except httpx.ConnectError as error:
         raise HTTPException(
@@ -424,16 +460,35 @@ async def call_gemma(
             ),
         ) from error
 
-    except httpx.HTTPError as error:
+    except httpx.TimeoutException as error:
         raise HTTPException(
-            status_code=502,
-            detail=f"Gemma 3 request failed: {error}",
+            status_code=504,
+            detail="Gemma 3 took too long to respond.",
         ) from error
 
-    except (KeyError, json.JSONDecodeError) as error:
+    except httpx.HTTPStatusError as error:
+        print("OLLAMA ERROR BODY:", error.response.text)
+
         raise HTTPException(
             status_code=502,
-            detail="Gemma 3 returned an invalid response.",
+            detail=(
+                "Gemma 3 request failed with status "
+                f"{error.response.status_code}."
+            ),
+        ) from error
+
+    except (
+        KeyError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as error:
+        print("GEMMA PARSE ERROR:", repr(error))
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Gemma 3 returned an invalid structured response."
+            ),
         ) from error
     
 #interview questions
@@ -446,19 +501,20 @@ async def start_interview(
     current_user: UserResponse = Depends(get_current_user),
 ):
     try:
-        print("1. Starting interview")
-        print("User:", current_user.user_id)
-        print("Target job:", request.target_job)
-
         question_schema = {
             "type": "object",
             "properties": {
-                "question": {"type": "string"},
+                "questions": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "items": {
+                        "type": "string",
+                    },
+                },
             },
-            "required": ["question"],
+            "required": ["questions"],
         }
-
-        print("2. Calling Gemma")
 
         result = await call_gemma(
             messages=[
@@ -466,31 +522,33 @@ async def start_interview(
                     "role": "system",
                     "content": (
                         "You are a professional behavioral interviewer. "
-                        "Generate exactly one realistic behavioral interview "
-                        "question that encourages a STAR-method answer."
+                        "Generate exactly five distinct behavioral interview "
+                        "questions for the target job. Each question must encourage "
+                        "a STAR-method response. Return only the five questions. "
+                        "Do not include answers, explanations, or numbering."
                     ),
                 },
                 {
                     "role": "user",
                     "content": (
                         f"Target job: {request.target_job}\n"
-                        "Generate one behavioral interview question."
+                        "Generate exactly five behavioral interview questions."
                     ),
                 },
             ],
             response_schema=question_schema,
         )
 
-        print("3. Gemma result:", result)
+        generated_questions = result.get("questions", [])
 
-        question_text = result["question"]
-
-        print("4. Opening database")
+        if len(generated_questions) != 5:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemma 3 did not return exactly five questions.",
+            )
 
         with InterviewIQDB("interviewiq.db") as db:
             cursor = db.conn.cursor()
-
-            print("5. Inserting interview")
 
             cursor.execute(
                 """
@@ -514,43 +572,49 @@ async def start_interview(
             )
 
             session_id = cursor.lastrowid
+            stored_questions = []
 
-            print("6. Inserting question")
-
-            cursor.execute(
-                """
-                INSERT INTO Question (
-                    session_id,
-                    question_text,
-                    question_type,
-                    question_order
+            for question_order, question_text in enumerate(
+                generated_questions,
+                start=1,
+            ):
+                cursor.execute(
+                    """
+                    INSERT INTO Question (
+                        session_id,
+                        question_text,
+                        question_type,
+                        question_order
+                    )
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        session_id,
+                        question_text.strip(),
+                        "behavioral",
+                        question_order,
+                    ),
                 )
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    session_id,
-                    question_text,
-                    "behavioral",
-                    1,
-                ),
-            )
 
-            question_id = cursor.lastrowid
+                stored_questions.append(
+                    InterviewQuestionResponse(
+                        question_id=cursor.lastrowid,
+                        question_order=question_order,
+                        question=question_text.strip(),
+                    )
+                )
+
             db.conn.commit()
-
-        print("7. Interview created successfully")
 
         return StartInterviewResponse(
             session_id=session_id,
-            question_id=question_id,
-            question=question_text,
+            questions=stored_questions,
         )
 
     except HTTPException:
         raise
 
     except Exception as error:
-        print("START INTERVIEW ERROR:", repr(error))
         traceback.print_exc()
 
         raise HTTPException(
@@ -558,10 +622,86 @@ async def start_interview(
             detail=f"{type(error).__name__}: {error}",
         ) from error
 
-    return StartInterviewResponse(
+@app.post(
+    "/interviews/{session_id}/complete",
+    response_model=CompleteInterviewResponse,
+)
+def complete_interview(
+    session_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        interview = cursor.execute(
+            """
+            SELECT session_id
+            FROM Interview
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        ).fetchone()
+
+        if interview is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Interview session not found.",
+            )
+
+        score_row = cursor.execute(
+            """
+            SELECT AVG(total_score) AS average_score,
+                   COUNT(*) AS answer_count
+            FROM Answer
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        ).fetchone()
+
+        if score_row["answer_count"] < 5:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Only {score_row['answer_count']} of 5 "
+                    "questions have been completed."
+                ),
+            )
+
+        average_score = round(
+            float(score_row["average_score"] or 0),
+            2,
+        )
+
+        cursor.execute(
+            """
+            UPDATE Interview
+            SET status = 'completed',
+                session_end_time = datetime('now'),
+                score = ?
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                average_score,
+                session_id,
+                current_user.user_id,
+            ),
+        )
+
+        db.conn.commit()
+
+    return CompleteInterviewResponse(
         session_id=session_id,
-        question_id=question_id,
-        question=question_text,
+        status="completed",
+        average_score=average_score,
     )
 
 @app.post(
@@ -773,3 +913,82 @@ async def submit_interview_answer(
         feedback=evaluation["feedback"],
         suggested_answer=evaluation["suggested_answer"],
     )
+
+@app.get("/interviews/{session_id}")
+def get_interview_session(
+    session_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        interview = cursor.execute(
+            """
+            SELECT *
+            FROM Interview
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        ).fetchone()
+
+        if interview is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Interview session not found.",
+            )
+
+        rows = cursor.execute(
+            """
+            SELECT
+                q.question_id,
+                q.question_order,
+                q.question_text,
+                a.answer_id,
+                a.response,
+                a.situation_score,
+                a.task_score,
+                a.action_score,
+                a.results_score,
+                a.total_score,
+                f.feedback_text,
+                f.strengths,
+                f.improvements,
+                f.suggested_answer
+            FROM Question q
+            LEFT JOIN Answer a
+                ON a.question_id = q.question_id
+            LEFT JOIN Feedback f
+                ON f.answer_id = a.answer_id
+            WHERE q.session_id = ?
+            ORDER BY q.question_order
+            """,
+            (session_id,),
+        ).fetchall()
+
+    questions = []
+
+    for row in rows:
+        item = dict(row)
+
+        item["strengths"] = (
+            json.loads(item["strengths"])
+            if item.get("strengths")
+            else []
+        )
+
+        item["improvements"] = (
+            json.loads(item["improvements"])
+            if item.get("improvements")
+            else []
+        )
+
+        questions.append(item)
+
+    return {
+        "interview": dict(interview),
+        "questions": questions,
+    }

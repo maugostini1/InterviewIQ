@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,8 @@ import {
 import { router } from "expo-router";
 
 import {
+  completeMockInterview,
+  InterviewQuestion,
   startMockInterview,
   StarFeedback,
   submitMockInterviewAnswer,
@@ -21,26 +23,48 @@ import {
 export default function InterviewScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [sessionId, setSessionId] = useState<number | null>(null);
-    const [questionId, setQuestionId] = useState<number | null>(null);
-    const [question, setQuestion] = useState("");
     const [answer, setAnswer] = useState("");
-    const [feedback, setFeedback] = useState<StarFeedback | null>(null);
     const [isStarting, setIsStarting] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const submissionInProgress = useRef(false);
+    const QUESTION_TIME_SECONDS = 150;
+    const TOTAL_QUESTIONS = 5;
+    const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [feedbackResults, setFeedbackResults] = useState<StarFeedback[]>([]);
+    const [secondsRemaining, setSecondsRemaining] = useState(
+      QUESTION_TIME_SECONDS
+    );
+    const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
 
-    useEffect(() => {
+    return `${minutes}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+    };
+
+const currentQuestion = questions[currentQuestionIndex];
+
+  useEffect(() => {
     const beginInterview = async () => {
       try {
         setIsStarting(true);
 
-        // Later, load this from the user's profile.
         const result = await startMockInterview(
           "Software Engineer"
         );
 
+        if (result.questions.length !== TOTAL_QUESTIONS) {
+          throw new Error(
+            "The interview did not return exactly five questions."
+          );
+        }
+
         setSessionId(result.session_id);
-        setQuestionId(result.question_id);
-        setQuestion(result.question);
+        setQuestions(result.questions);
+        setCurrentQuestionIndex(0);
+        setSecondsRemaining(QUESTION_TIME_SECONDS);
       } catch (error) {
         Alert.alert(
           "Interview error",
@@ -53,11 +77,22 @@ export default function InterviewScreen() {
       }
     };
 
-    beginInterview();
+  void beginInterview();
   }, []);
   
-  const handleSubmit = async () => {
-  if (!answer.trim()) {
+const handleSubmit = async (timeExpired = false) => {
+  if (
+    submissionInProgress.current ||
+    isSubmitting ||
+    sessionId === null ||
+    !currentQuestion
+  ) {
+    return;
+  }
+
+  const submittedAnswer = answer.trim();
+
+  if (!timeExpired && !submittedAnswer) {
     Alert.alert(
       "Answer required",
       "Enter an answer before submitting."
@@ -65,24 +100,46 @@ export default function InterviewScreen() {
     return;
   }
 
-  if (sessionId === null || questionId === null) {
-    Alert.alert(
-      "Interview unavailable",
-      "The interview has not loaded yet."
-    );
-    return;
-  }
-
   try {
+    submissionInProgress.current = true;
     setIsSubmitting(true);
 
     const result = await submitMockInterviewAnswer(
       sessionId,
-      questionId,
-      answer.trim()
+      currentQuestion.question_id,
+      submittedAnswer ||
+        "No answer was submitted before time expired."
     );
 
-    setFeedback(result);
+    const updatedFeedback = [
+      ...feedbackResults,
+      result,
+    ];
+
+    setFeedbackResults(updatedFeedback);
+
+    const finalQuestion = currentQuestionIndex === TOTAL_QUESTIONS - 1;
+
+    console.log("Fifth answer saved:", result);
+
+    if (finalQuestion) {
+      const completed = await completeMockInterview(sessionId);
+
+      console.log("Session completed:", completed);
+
+      router.replace({
+        pathname: "/feedback",
+        params: {
+          sessionId: String(sessionId),
+        },
+      });
+
+      return;
+    }
+
+    setCurrentQuestionIndex((previous) => previous + 1);
+    setAnswer("");
+    setSecondsRemaining(QUESTION_TIME_SECONDS);
   } catch (error) {
     Alert.alert(
       "Evaluation error",
@@ -90,10 +147,46 @@ export default function InterviewScreen() {
         ? error.message
         : "Unable to evaluate the answer."
     );
+
+    if (timeExpired) {
+      setSecondsRemaining(QUESTION_TIME_SECONDS);
+    }
   } finally {
     setIsSubmitting(false);
+    submissionInProgress.current = false;
   }
 };
+
+useEffect(() => {
+  if (
+    isStarting ||
+    isSubmitting ||
+    !currentQuestion
+  ) {
+    return;
+  }
+
+  const timer = setInterval(() => {
+    setSecondsRemaining((previous) => {
+      if (previous <= 1) {
+        clearInterval(timer);
+
+        void handleSubmit(true);
+
+        return 0;
+      }
+
+      return previous - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [
+  currentQuestionIndex,
+  isStarting,
+  isSubmitting,
+  currentQuestion?.question_id,
+]);
 
   return (
     <View style={styles.page}>
@@ -139,15 +232,34 @@ export default function InterviewScreen() {
       
       <Text style={styles.title}>Mock Interview</Text>
 
-      <View style={styles.questionArea}>
-        {isStarting ? (
-          <ActivityIndicator size="large" />
-        ) : (
-          <Text style={styles.questionText}>
-            {question}
-          </Text>
-        )}
-      </View>
+    <View style={styles.interviewHeader}>
+      <Text style={styles.questionCounter}>
+        Question {currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
+      </Text>
+
+      <Text
+        style={[
+          styles.timer,
+          secondsRemaining <= 30 && styles.timerWarning,
+        ]}
+      >
+        {formatTime(secondsRemaining)}
+      </Text>
+    </View>
+
+<View style={styles.questionArea}>
+  {isStarting ? (
+    <ActivityIndicator size="large" />
+  ) : currentQuestion ? (
+    <Text style={styles.questionText}>
+      {currentQuestion.question}
+    </Text>
+  ) : (
+    <Text style={styles.questionText}>
+      No question available.
+    </Text>
+  )}
+</View>
 
       <View style={styles.bottomSection}>
         <TextInput
@@ -159,18 +271,20 @@ export default function InterviewScreen() {
           placeholder="Describe the situation, task, action, and result..."
         />
       <View style={styles.buttonRow}>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={handleSubmit}
-          disabled={isSubmitting || isStarting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.secondaryButtonText}>
-              Submit
-            </Text>
-          )}
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => void handleSubmit(false)}
+        disabled={isSubmitting || isStarting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.secondaryButtonText}>
+            {currentQuestionIndex === TOTAL_QUESTIONS - 1
+              ? "Finish Interview"
+              : "Submit and Continue"}
+          </Text>
+        )}
         </Pressable>
         <Pressable
           style={styles.secondaryButton}
@@ -286,5 +400,26 @@ const styles = StyleSheet.create({
   buttonRow: {
   gap: 12,
 },
+interviewHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: 18,
+},
 
+questionCounter: {
+  fontSize: 17,
+  fontWeight: "700",
+  color: "#27245C",
+},
+
+timer: {
+  fontSize: 24,
+  fontWeight: "800",
+  color: "#27245C",
+},
+
+timerWarning: {
+  color: "#B42318",
+},
 });

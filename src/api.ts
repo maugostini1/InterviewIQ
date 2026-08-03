@@ -199,9 +199,14 @@ export async function uploadResume(
 }
 
 export type InterviewQuestion = {
-  session_id: number;
   question_id: number;
+  question_order: number;
   question: string;
+};
+
+export type StartInterviewResult = {
+  session_id: number;
+  questions: InterviewQuestion[];
 };
 
 export type StarFeedback = {
@@ -258,7 +263,7 @@ async function parseApiResponse(response: Response) {
 
 export async function startMockInterview(
   targetJob: string
-): Promise<InterviewQuestion> {
+): Promise<StartInterviewResult> {
   const token = await getAccessToken();
 
   const response = await fetch(
@@ -276,7 +281,7 @@ export async function startMockInterview(
     }
   );
 
-  return await parseApiResponse(response);
+  return parseApiResponse(response);
 }
 
 export async function submitMockInterviewAnswer(
@@ -306,3 +311,21 @@ export async function submitMockInterviewAnswer(
   return await parseApiResponse(response);
 }
 
+export async function completeMockInterview(
+  sessionId: number
+) {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${sessionId}/complete`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return parseApiResponse(response);
+}
