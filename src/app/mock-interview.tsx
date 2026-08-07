@@ -286,12 +286,6 @@ useEffect(() => {
           </Text>
         )}
         </Pressable>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => router.push("/feedback")}
-        >
-          <Text style={styles.secondaryButtonText}>End Interview</Text>
-        </Pressable>
       </View>
       </View>
     </View>

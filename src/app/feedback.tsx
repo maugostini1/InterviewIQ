@@ -201,63 +201,6 @@ export default function FeedbackScreen() {
         ))
       )}
 
-      <Text style={styles.sectionTitle}>
-        Overall Interview Feedback
-      </Text>
-
-      <View style={styles.overallFeedbackCard}>
-        <Text style={styles.feedbackHeading}>
-          Interview Assessment
-        </Text>
-
-        <Text style={styles.bodyText}>
-          {session.interview.overall_feedback ||
-            "Overall interview feedback was not available."}
-        </Text>
-
-        <Text style={styles.feedbackHeading}>
-          Overall Strengths
-        </Text>
-
-        {session.interview.overall_strengths?.length ? (
-          session.interview.overall_strengths.map(
-            (strength, index) => (
-              <Text
-                key={`${strength}-${index}`}
-                style={styles.listItem}
-              >
-                • {strength}
-              </Text>
-            )
-          )
-        ) : (
-          <Text style={styles.emptyText}>
-            No overall strengths were returned.
-          </Text>
-        )}
-
-        <Text style={styles.feedbackHeading}>
-          Focus for Your Next Interview
-        </Text>
-
-        {session.interview.overall_improvements?.length ? (
-          session.interview.overall_improvements.map(
-            (improvement, index) => (
-              <Text
-                key={`${improvement}-${index}`}
-                style={styles.listItem}
-              >
-                • {improvement}
-              </Text>
-            )
-          )
-        ) : (
-          <Text style={styles.emptyText}>
-            No overall improvement areas were returned.
-          </Text>
-        )}
-      </View>
-
       <Pressable
         style={styles.primaryButton}
         onPress={() =>
