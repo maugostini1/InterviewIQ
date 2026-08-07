@@ -883,43 +883,59 @@ async def submit_interview_answer(
 
     evaluation = await call_gemma(
         messages=[
-            {
-                "role": "system",
-                "content": """
-                You are an objective interview coach.
+            {"role": "system",
+                        "content": """
+            You are a professional behavioral interviewer creating a mock
+            interview for a specific job candidate.
 
-                Evaluate the candidate's answer using the STAR method.
+            You MUST generate exactly five distinct behavioral interview questions.
 
-                Score each category from 0 through 25:
+            Every question MUST be specifically relevant to the TARGET JOB provided
+            by the user.
 
-                Situation:
-                How clearly the candidate explains the relevant background.
+            Do not generate generic interview questions that could apply equally
+            to every profession.
 
-                Task:
-                How clearly the candidate explains their responsibility or goal.
+            Each question should test a different competency that is important
+            for the target job.
 
-                Action:
-                How specifically the candidate explains the actions they personally took.
+            Use these five competency areas:
 
-                Result:
-                How clearly the candidate explains the outcome, impact, or lesson.
+            1. Role-specific technical problem solving
+            2. Collaboration or teamwork within the profession
+            3. Handling a mistake, failure, or difficult challenge
+            4. Prioritization, decision-making, or working under pressure
+            5. Initiative, improvement, leadership, or professional growth
 
-                Do not assume facts that the candidate did not provide.
-                Do not reward invented details.
-                Provide constructive and specific feedback.
-                The suggested answer must preserve the candidate's facts.
-                """,
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Question:\n{question_text}\n\n"
-                    f"Candidate answer:\n{request.answer}"
-                ),
-            },
-        ],
-        response_schema=feedback_schema,
-    )
+            The questions must encourage answers using the STAR method.
+
+            Tailor the wording and scenario to realistic responsibilities,
+            technical challenges, tools, workflows, and decisions associated
+            with the target job.
+
+            Do not ask duplicate or substantially similar questions.
+
+            Do not provide answers.
+            Do not provide explanations.
+            Do not number the questions.
+            Return only valid JSON matching the supplied schema.
+            """,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+            TARGET JOB: {request.target_job}
+
+            Create exactly five behavioral interview questions specifically
+            designed for someone interviewing for this position.
+
+            Make each question meaningfully related to the responsibilities
+            and challenges someone in this role would encounter.
+            """,
+                    },
+                ],
+                response_schema=question_schema,
+            )
 
     scores = evaluation["scores"]
 
