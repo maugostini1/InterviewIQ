@@ -46,102 +46,121 @@ useEffect(() => {
     router.replace("/");
   };  
 
-  return (
+ return (
   <SafeAreaView style={styles.page}>
     <View style={styles.header}>
-      <Pressable style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
+      <Pressable
+        style={styles.menuButton}
+        onPress={() => setMenuOpen(!menuOpen)}
+      >
         <View style={styles.menuLine} />
         <View style={styles.menuLine} />
         <View style={styles.menuLine} />
       </Pressable>
 
-      <Text style={styles.headerTitle}>Welcome Back{firstName ? `, ${firstName}!` : "!"}</Text>
-      
+      <Text style={styles.headerTitle}>
+        Welcome Back{firstName ? `, ${firstName}!` : "!"}
+      </Text>
+
       <View style={styles.headerSpacer} />
-
-      {menuOpen && (
-        <View style={styles.dropdown}>
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={() => {
-              setMenuOpen(false);
-              router.push("/profile");
-            }}
-          >
-            <Text style={styles.dropdownText}>Profile</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={() => {
-              setMenuOpen(false);
-              router.push("/feedback");
-            }}
-          >
-            <Text style={styles.dropdownText}>Feedback</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={() => {
-              setMenuOpen(false);
-              router.push("/mock-interview");
-            }}
-          >
-            <Text style={styles.dropdownText}>Mock Interview</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={async () => {
-              setMenuOpen(false);
-              await handleLogout();
-            }}
-          >
-            <Text style={styles.dropdownText}>Log Out</Text>
-          </Pressable>
-        </View>
-      )}
+    </View>
     
-    
-    <ScrollView style={styles.page}>
-      <View style={styles.container}>
-        
-        <Text style={styles.subtitle}>
-          Ready to ace your next interview?
-        </Text>
+    {/*Allows menu to be closed after clicking another part of screen*/}
+    {menuOpen && (
+      <Pressable
+         style={styles.menuBackdrop}
+          onPress={() => setMenuOpen(false)}
+      />
+    )}
 
-        <Text style={styles.label}>Interviews</Text>
-        <View style={styles.statCard}>
-          <Text style={styles.statText}>Interviews Taken</Text>
-        </View>
-
-        <Text style={styles.label}>Average Score</Text>
-        <View style={styles.statCard}>
-          <Text style={styles.statText}>85%</Text>
-        </View>
-
-        <Text style={styles.label}>Strengths</Text>
-        <View style={styles.statCard}>
-          <Text style={styles.statText}>Strong Communication Skills</Text>
-        </View>
-
-        <Text style={styles.label}>Improvement Areas</Text>
-        <View style={styles.statCard}>
-          <Text style={styles.statText}>Technical Knowledge</Text>
-        </View>
+    {menuOpen && (
+      <View style={styles.dropdown}>
+        <Pressable
+          style={styles.dropdownItem}
+          onPress={() => {
+            setMenuOpen(false);
+            router.push("/profile");
+          }}
+        >
+          <Text style={styles.dropdownText}>Profile</Text>
+        </Pressable>
 
         <Pressable
-          style={styles.secondaryButton}
-          onPress={() => router.push("/mock-interview")}
+          style={styles.dropdownItem}
+          onPress={() => {
+            setMenuOpen(false);
+            router.push("/mock-interview");
+          }}
         >
-          <Text style={styles.secondaryButtonText}>Start Mock Interview</Text>
+          <Text style={styles.dropdownText}>
+            Mock Interview
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.dropdownItem}
+          onPress={async () => {
+            setMenuOpen(false);
+            await handleLogout();
+          }}
+        >
+          <Text style={styles.dropdownText}>Log Out</Text>
         </Pressable>
       </View>
+    )}
+
+    {/* Main page content is OUTSIDE the header */}
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.container}
+    >
+      <Text style={styles.subtitle}>
+        Ready to ace your next interview?
+      </Text>
+
+      <Text style={styles.label}>Interviews</Text>
+
+      <View style={styles.statCard}>
+        <Text style={styles.statText}>
+          Interviews Taken
+        </Text>
+      </View>
+
+      <Text style={styles.label}>Average Score</Text>
+
+      <View style={styles.statCard}>
+        <Text style={styles.statText}>85%</Text>
+      </View>
+
+      <Text style={styles.label}>Strengths</Text>
+
+      <View style={styles.statCard}>
+        <Text style={styles.statText}>
+          Strong Communication Skills
+        </Text>
+      </View>
+
+      <Text style={styles.label}>
+        Improvement Areas
+      </Text>
+
+      <View style={styles.statCard}>
+        <Text style={styles.statText}>
+          Technical Knowledge
+        </Text>
+      </View>
+
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => router.push("/mock-interview")}
+      >
+        <Text style={styles.secondaryButtonText}>
+          Start Mock Interview
+        </Text>
+      </Pressable>
     </ScrollView>
-  </View>
-</SafeAreaView>
-  );
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
@@ -151,6 +170,9 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 24,
+  },
+  scrollView: {
+  flex: 1,
   },
   title: {
     marginVertical: 28,
@@ -275,5 +297,15 @@ menuButton: {
 
   headerSpacer: {
     width: 44,
+  },
+
+  menuBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 90,
+    backgroundColor: "transparent",
   },
 });

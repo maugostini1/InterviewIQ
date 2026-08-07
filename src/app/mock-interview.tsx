@@ -9,53 +9,94 @@ import {
   TextInput,
   View,
 } from "react-native";
+
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as SecureStore from "expo-secure-store";
 
 import {
+  cancelMockInterview,
   completeMockInterview,
-  InterviewQuestion,
   startMockInterview,
-  StarFeedback,
   submitMockInterviewAnswer,
+  type InterviewQuestion,
+  type StarFeedback,
 } from "../api";
 
+const TOTAL_QUESTIONS = 5;
+const QUESTION_TIME_SECONDS = 150;
 
 export default function InterviewScreen() {
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [sessionId, setSessionId] = useState<number | null>(null);
-    const [answer, setAnswer] = useState("");
-    const [isStarting, setIsStarting] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const submissionInProgress = useRef(false);
-    const QUESTION_TIME_SECONDS = 150;
-    const TOTAL_QUESTIONS = 5;
-    const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [feedbackResults, setFeedbackResults] = useState<StarFeedback[]>([]);
-    const [secondsRemaining, setSecondsRemaining] = useState(
-      QUESTION_TIME_SECONDS
-    );
-    const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sessionId, setSessionId] =
+    useState<number | null>(null);
+  const [questions, setQuestions] =
+    useState<InterviewQuestion[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] =
+    useState(0);
+  const [answer, setAnswer] = useState("");
+  const [feedbackResults, setFeedbackResults] =
+    useState<StarFeedback[]>([]);
+  const [secondsRemaining, setSecondsRemaining] =
+    useState(QUESTION_TIME_SECONDS);
+  const [isStarting, setIsStarting] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    return `${minutes}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
-    };
+  const submissionInProgress = useRef(false);
+  const answerRef = useRef("");
 
-const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestion =
+    questions[currentQuestionIndex];
 
+  useEffect(() => {
+    answerRef.current = answer;
+  }, [answer]);
+
+  /*Begins Interview*/
   useEffect(() => {
     const beginInterview = async () => {
       try {
         setIsStarting(true);
+        const storedUser =
+          await SecureStore.getItemAsync("user");
 
-        const result = await startMockInterview(
-          "Software Engineer"
+        if (!storedUser) {
+          throw new Error(
+            "User information could not be loaded."
+          );
+        }
+
+        const user = JSON.parse(storedUser);
+        const targetJob = user.target_job;
+
+        if (!targetJob) {
+          throw new Error(
+            "No target job is associated with this account."
+          );
+        }
+
+        console.log(
+          "Starting interview for:",
+          targetJob
         );
 
-        if (result.questions.length !== TOTAL_QUESTIONS) {
+        const result =
+          await startMockInterview(targetJob);
+
+        console.log(
+          "Interview session:",
+          result.session_id
+        );
+
+        console.log(
+          "Questions received:",
+          result.questions
+        );
+
+        if (
+          !result.questions ||
+          result.questions.length !== TOTAL_QUESTIONS
+        ) {
           throw new Error(
             "The interview did not return exactly five questions."
           );
@@ -63,11 +104,24 @@ const currentQuestion = questions[currentQuestionIndex];
 
         setSessionId(result.session_id);
         setQuestions(result.questions);
+
         setCurrentQuestionIndex(0);
-        setSecondsRemaining(QUESTION_TIME_SECONDS);
+        setSecondsRemaining(
+          QUESTION_TIME_SECONDS
+        );
+
+        setAnswer("");
+        answerRef.current = "";
+
+        setFeedbackResults([]);
       } catch (error) {
+        console.error(
+          "Interview startup error:",
+          error
+        );
+
         Alert.alert(
-          "Interview error",
+          "Interview Error",
           error instanceof Error
             ? error.message
             : "Unable to start the interview."
@@ -77,124 +131,249 @@ const currentQuestion = questions[currentQuestionIndex];
       }
     };
 
-  void beginInterview();
+    void beginInterview();
   }, []);
-  
-const handleSubmit = async (timeExpired = false) => {
-  if (
-    submissionInProgress.current ||
-    isSubmitting ||
-    sessionId === null ||
-    !currentQuestion
-  ) {
-    return;
-  }
 
-  const submittedAnswer = answer.trim();
+  useEffect(() => {
+    if (
+      isStarting ||
+      isSubmitting ||
+      !currentQuestion
+    ) {
+      return;
+    }
 
-  if (!timeExpired && !submittedAnswer) {
-    Alert.alert(
-      "Answer required",
-      "Enter an answer before submitting."
-    );
-    return;
-  }
+    const timer = setInterval(() => {
+      setSecondsRemaining((previousTime) => {
+        if (previousTime <= 1) {
+          clearInterval(timer);
+          void submitAnswer(true);
 
-  try {
-    submissionInProgress.current = true;
-    setIsSubmitting(true);
+          return 0;
+        }
 
-    const result = await submitMockInterviewAnswer(
-      sessionId,
-      currentQuestion.question_id,
-      submittedAnswer ||
-        "No answer was submitted before time expired."
-    );
-
-    const updatedFeedback = [
-      ...feedbackResults,
-      result,
-    ];
-
-    setFeedbackResults(updatedFeedback);
-
-    const finalQuestion = currentQuestionIndex === TOTAL_QUESTIONS - 1;
-
-    console.log("Fifth answer saved:", result);
-
-    if (finalQuestion) {
-      const completed = await completeMockInterview(sessionId);
-
-      console.log("Session completed:", completed);
-
-      router.replace({
-        pathname: "/feedback",
-        params: {
-          sessionId: String(sessionId),
-        },
+        return previousTime - 1;
       });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [
+    currentQuestionIndex,
+    isStarting,
+    isSubmitting,
+    currentQuestion?.question_id,
+  ]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    return `${minutes}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  const submitAnswer = async (
+    timeExpired = false
+  ) => {
+    if (
+      submissionInProgress.current ||
+      isSubmitting ||
+      sessionId === null ||
+      !currentQuestion
+    ) {
+      return;
+    }
+
+    const submittedAnswer =
+      answerRef.current.trim();
+
+    if (!timeExpired && !submittedAnswer) {
+      Alert.alert(
+        "Answer Required",
+        "Enter an answer before continuing."
+      );
 
       return;
     }
 
-    setCurrentQuestionIndex((previous) => previous + 1);
-    setAnswer("");
-    setSecondsRemaining(QUESTION_TIME_SECONDS);
-  } catch (error) {
-    Alert.alert(
-      "Evaluation error",
-      error instanceof Error
-        ? error.message
-        : "Unable to evaluate the answer."
-    );
+    try {
+      submissionInProgress.current = true;
+      setIsSubmitting(true);
 
-    if (timeExpired) {
-      setSecondsRemaining(QUESTION_TIME_SECONDS);
-    }
-  } finally {
-    setIsSubmitting(false);
-    submissionInProgress.current = false;
-  }
-};
+      const answerToSubmit =
+        submittedAnswer ||
+        "No answer was provided before time expired.";
 
-useEffect(() => {
-  if (
-    isStarting ||
-    isSubmitting ||
-    !currentQuestion
-  ) {
-    return;
-  }
+      console.log(
+        `Submitting question ${
+          currentQuestionIndex + 1
+        }`
+      );
 
-  const timer = setInterval(() => {
-    setSecondsRemaining((previous) => {
-      if (previous <= 1) {
-        clearInterval(timer);
+      const result =
+        await submitMockInterviewAnswer(
+          sessionId,
+          currentQuestion.question_id,
+          answerToSubmit
+        );
 
-        void handleSubmit(true);
+      console.log(
+        "STAR evaluation:",
+        result
+      );
 
-        return 0;
+      const updatedFeedback = [
+        ...feedbackResults,
+        result,
+      ];
+
+      setFeedbackResults(updatedFeedback);
+
+      const finalQuestion =
+        currentQuestionIndex ===
+        TOTAL_QUESTIONS - 1;
+
+      if (finalQuestion) {
+        console.log(
+          "Completing interview session:",
+          sessionId
+        );
+
+        await completeMockInterview(sessionId);
+
+        router.replace({
+          pathname: "/feedback",
+          params: {
+            sessionId:
+              String(sessionId),
+          },
+        });
+
+        return;
       }
 
-      return previous - 1;
-    });
-  }, 1000);
 
-  return () => clearInterval(timer);
-}, [
-  currentQuestionIndex,
-  isStarting,
-  isSubmitting,
-  currentQuestion?.question_id,
-]);
+      setCurrentQuestionIndex(
+        (previous) => previous + 1
+      );
+
+      setAnswer("");
+      answerRef.current = "";
+
+      setSecondsRemaining(
+        QUESTION_TIME_SECONDS
+      );
+    } catch (error) {
+      console.error(
+        "Answer submission error:",
+        error
+      );
+
+      Alert.alert(
+        "Evaluation Error",
+        error instanceof Error
+          ? error.message
+          : "Unable to evaluate your answer."
+      );
+
+      if (timeExpired) {
+        setSecondsRemaining(
+          QUESTION_TIME_SECONDS
+        );
+      }
+    } finally {
+      submissionInProgress.current = false;
+      setIsSubmitting(false);
+    }
+  };
+
+  /*Ends Interview*/
+const handleEndInterview = () => {
+  Alert.alert(
+    "End Interview?",
+    "Are you sure you want to end this interview?",
+    [
+      {
+        text: "Continue Interview",
+        style: "cancel",
+      },
+      {
+        text: "End Interview",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setIsSubmitting(true);
+
+            if (sessionId !== null) {
+              await cancelMockInterview(sessionId);
+            }
+
+            router.replace("/home");
+          } catch (error) {
+            Alert.alert(
+              "Unable to end interview",
+              error instanceof Error
+                ? error.message
+                : "The interview could not be cancelled."
+            );
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      },
+    ]
+  );
+};
+
+  /*Handles Logout*/
+  const handleLogout = async () => {
+    try {
+      await SecureStore.deleteItemAsync(
+        "access_token"
+      );
+
+      await SecureStore.deleteItemAsync(
+        "user"
+      );
+
+      router.replace("/");
+    } catch (error) {
+      console.error(
+        "Logout error:",
+        error
+      );
+    }
+  };
 
   return (
-    <View style={styles.page}>
-      <Pressable style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
-        <View style={styles.menuLine} />
-        <View style={styles.menuLine} />
-        <View style={styles.menuLine} />
-      </Pressable>
+    <SafeAreaView style={styles.page}>
+      <View style={styles.header}>
+        <Pressable
+          style={styles.menuButton}
+          onPress={() =>
+            setMenuOpen((current) => !current)
+          }
+          hitSlop={12}
+        >
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+          <View style={styles.menuLine} />
+        </Pressable>
+
+        <Text style={styles.headerTitle}>
+          Mock Interview
+        </Text>
+
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {menuOpen && (
+        <Pressable
+            style={styles.menuBackdrop}
+            onPress={() => setMenuOpen(false)}
+        />
+      )}
 
       {menuOpen && (
         <View style={styles.dropdown}>
@@ -202,93 +381,196 @@ useEffect(() => {
             style={styles.dropdownItem}
             onPress={() => {
               setMenuOpen(false);
+
               router.push("/home");
             }}
           >
-            <Text style={styles.dropdownText}>Home</Text>
+            <Text style={styles.dropdownText}>
+              Home
+            </Text>
           </Pressable>
 
           <Pressable
             style={styles.dropdownItem}
             onPress={() => {
               setMenuOpen(false);
+
+              router.push("/profile");
+            }}
+          >
+            <Text style={styles.dropdownText}>
+              Profile
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={() => {
+              setMenuOpen(false);
+
               router.push("/feedback");
             }}
           >
-            <Text style={styles.dropdownText}>Feedback</Text>
+            <Text style={styles.dropdownText}>
+              Feedback
+            </Text>
           </Pressable>
 
           <Pressable
             style={styles.dropdownItem}
             onPress={() => {
               setMenuOpen(false);
-              router.push("/mock-interview");
+
+              handleEndInterview();
             }}
           >
-            <Text style={styles.dropdownText}>Mock Interview</Text>
+            <Text style={styles.dropdownDangerText}>
+              End Interview
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dropdownItem}
+            onPress={async () => {
+              setMenuOpen(false);
+
+              await handleLogout();
+            }}
+          >
+            <Text style={styles.dropdownText}>
+              Log Out
+            </Text>
           </Pressable>
         </View>
       )}
-      
-      <Text style={styles.title}>Mock Interview</Text>
 
-    <View style={styles.interviewHeader}>
-      <Text style={styles.questionCounter}>
-        Question {currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
-      </Text>
-
-      <Text
-        style={[
-          styles.timer,
-          secondsRemaining <= 30 && styles.timerWarning,
-        ]}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={
+          styles.container
+        }
+        keyboardShouldPersistTaps="handled"
       >
-        {formatTime(secondsRemaining)}
-      </Text>
-    </View>
+        {isStarting ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" />
 
-<View style={styles.questionArea}>
-  {isStarting ? (
-    <ActivityIndicator size="large" />
-  ) : currentQuestion ? (
-    <Text style={styles.questionText}>
-      {currentQuestion.question}
-    </Text>
-  ) : (
-    <Text style={styles.questionText}>
-      No question available.
-    </Text>
-  )}
-</View>
-
-      <View style={styles.bottomSection}>
-        <TextInput
-          style={styles.input}
-          value={answer}
-          onChangeText={setAnswer}
-          multiline
-          textAlignVertical="top"
-          placeholder="Describe the situation, task, action, and result..."
-        />
-      <View style={styles.buttonRow}>
-      <Pressable
-        style={styles.secondaryButton}
-        onPress={() => void handleSubmit(false)}
-        disabled={isSubmitting || isStarting}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color="#FFFFFF" />
+            <Text style={styles.loadingText}>
+              Preparing your interview...
+            </Text>
+          </View>
+        ) : !currentQuestion ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.errorText}>
+              No interview question is available.
+            </Text>
+          </View>
         ) : (
-          <Text style={styles.secondaryButtonText}>
-            {currentQuestionIndex === TOTAL_QUESTIONS - 1
-              ? "Finish Interview"
-              : "Submit and Continue"}
-          </Text>
+          <>
+
+            <View style={styles.interviewStatus}>
+              <Text style={styles.questionCounter}>
+                Question{" "}
+                {currentQuestionIndex + 1} of{" "}
+                {TOTAL_QUESTIONS}
+              </Text>
+
+              <Text
+                style={[
+                  styles.timer,
+                  secondsRemaining <= 30 &&
+                    styles.timerWarning,
+                ]}
+              >
+                {formatTime(secondsRemaining)}
+              </Text>
+            </View>
+
+            {/* Progress Bar */}
+
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${
+                      ((currentQuestionIndex + 1) /
+                        TOTAL_QUESTIONS) *
+                      100
+                    }%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.questionCard}>
+              <Text style={styles.questionText}>
+                {currentQuestion.question}
+              </Text>
+            </View>
+
+            <Text style={styles.answerLabel}>
+              Your STAR Response
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              value={answer}
+              onChangeText={(text) => {
+                setAnswer(text);
+                answerRef.current = text;
+              }}
+              multiline
+              textAlignVertical="top"
+              placeholder={
+                "Describe the situation, task, action, and result..."
+              }
+              placeholderTextColor="#8A8DA1"
+              editable={!isSubmitting}
+            />
+
+            <Pressable
+              style={[
+                styles.primaryButton,
+                isSubmitting &&
+                  styles.disabledButton,
+              ]}
+              onPress={() =>
+                void submitAnswer(false)
+              }
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator
+                  color="#FFFFFF"
+                />
+              ) : (
+                <Text
+                  style={
+                    styles.primaryButtonText
+                  }
+                >
+                  {currentQuestionIndex ===
+                  TOTAL_QUESTIONS - 1
+                    ? "Finish Interview"
+                    : "Submit and Continue"}
+                </Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.endButton}
+              onPress={handleEndInterview}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.endButtonText}>
+                End Interview
+              </Text>
+            </Pressable>
+          </>
         )}
-        </Pressable>
-      </View>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -296,124 +578,245 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: "#F7F8FC",
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
   },
-  title: {
-    marginBottom: 28,
-    fontSize: 32,
-    alignSelf: "center",
+
+  header: {
+    height: 64,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F7F8FC",
+    zIndex: 20,
+    elevation: 20,
+  },
+
+  headerTitle: {
+    fontSize: 26,
     fontWeight: "800",
     color: "#27245C",
   },
-  questionArea: {
-    flex: 1,
-    alignSelf: "center",
-    justifyContent: "center",    
+
+  headerSpacer: {
+    width: 44,
   },
-  label: {
-    marginBottom: 7,
-    fontWeight: "700",
-    color: "#17172A",
-  },
-  questionText: {
-    fontSize: 24,
-    color: "#27245C",
-    lineHeight: 26,
-  },
-  bottomSection: {
-    justifyContent: "flex-end",
-  },
-  input: {
-    minHeight: 50,
-    marginBottom: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#DFE2EA",
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-  },
-  secondaryButton: {
-    minHeight: 52,
+
+  menuButton: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
-    flexDirection: "row",
-    borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: "#6C63FF",
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    elevation: 5,
   },
-  secondaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-    menuButton: {
-    position: "absolute",
-    top: 60,
-    left: 24,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    gap: 5,
-    zIndex: 10,
-  },
+
   menuLine: {
-    height: 3,
     width: 24,
+    height: 3,
+    marginVertical: 2.5,
     borderRadius: 2,
     backgroundColor: "#27245C",
   },
-    dropdown: {
+
+  dropdown: {
     position: "absolute",
-    top: 105,
-    left: 24,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    top: 64,
+    left: 18,
+    minWidth: 190,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: "#DFE2EA",
-    paddingVertical: 6,
-    minWidth: 180,
-    zIndex: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    zIndex: 100,
+    elevation: 30,
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 5,
   },
+
   dropdownItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
+
   dropdownText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#27245C",
   },
-  buttonRow: {
-  gap: 12,
-},
-interviewHeader: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginTop: 18,
-},
 
-questionCounter: {
-  fontSize: 17,
-  fontWeight: "700",
-  color: "#27245C",
-},
+  dropdownDangerText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#B42318",
+  },
 
-timer: {
-  fontSize: 24,
-  fontWeight: "800",
-  color: "#27245C",
-},
+  scrollView: {
+    flex: 1,
+  },
 
-timerWarning: {
-  color: "#B42318",
-},
+  container: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    minHeight: 400,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  loadingText: {
+    marginTop: 14,
+    fontSize: 15,
+    color: "#6E7185",
+  },
+
+  errorText: {
+    fontSize: 16,
+    color: "#B42318",
+  },
+
+  interviewStatus: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  questionCounter: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#27245C",
+  },
+
+  timer: {
+    fontSize: 25,
+    fontWeight: "800",
+    color: "#27245C",
+  },
+
+  timerWarning: {
+    color: "#B42318",
+  },
+
+  progressTrack: {
+    width: "100%",
+    height: 8,
+    marginBottom: 24,
+    borderRadius: 4,
+    backgroundColor: "#DFE2EA",
+    overflow: "hidden",
+  },
+
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: "#6C63FF",
+  },
+
+  questionCard: {
+    padding: 22,
+    marginBottom: 26,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+
+    elevation: 3,
+  },
+
+  questionText: {
+    fontSize: 21,
+    lineHeight: 30,
+    fontWeight: "700",
+    color: "#27245C",
+  },
+
+  answerLabel: {
+    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#27245C",
+  },
+
+  input: {
+    minHeight: 190,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 20,
+
+    borderWidth: 1,
+    borderColor: "#DFE2EA",
+    borderRadius: 14,
+
+    backgroundColor: "#FFFFFF",
+
+    fontSize: 16,
+    lineHeight: 23,
+    color: "#333344",
+  },
+
+  primaryButton: {
+    minHeight: 54,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: "#6C63FF",
+  },
+
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  disabledButton: {
+    opacity: 0.6,
+  },
+
+  endButton: {
+    minHeight: 52,
+    marginTop: 12,
+    justifyContent: "center",
+    alignItems: "center",
+
+    borderWidth: 1,
+    borderColor: "#B42318",
+    borderRadius: 12,
+
+    backgroundColor: "#FFFFFF",
+  },
+
+  endButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#B42318",
+  },
+
+  menuBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 90,
+    backgroundColor: "transparent",
+  },
 });

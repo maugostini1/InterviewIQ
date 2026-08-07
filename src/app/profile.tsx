@@ -108,6 +108,13 @@ return (
     </View>
 
     {menuOpen && (
+      <Pressable
+          style={styles.menuBackdrop}
+          onPress={() => setMenuOpen(false)}
+      />
+    )}
+
+    {menuOpen && (
     <View style={styles.dropdown}>
         <Pressable
         style={styles.dropdownItem}
@@ -117,16 +124,6 @@ return (
         }}
         >
         <Text style={styles.dropdownText}>Home</Text>
-        </Pressable>
-
-        <Pressable
-        style={styles.dropdownItem}
-        onPress={() => {
-            setMenuOpen(false);
-            router.push("/profile");
-        }}
-        >
-        <Text style={styles.dropdownText}>Feedback</Text>
         </Pressable>
 
         <Pressable
@@ -360,5 +357,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#27245C",
+  },
+
+  menuBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 90,
+    backgroundColor: "transparent",
   },
 });

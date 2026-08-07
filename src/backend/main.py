@@ -113,6 +113,10 @@ class CompleteInterviewResponse(BaseModel):
     status: str
     average_score: float
 
+class CancelInterviewResponse(BaseModel):
+    session_id: int
+    status: str
+
 class OverallInterviewFeedback(BaseModel):
     overall_feedback: str
     overall_strengths: list[str]
@@ -405,7 +409,7 @@ def get_profile(
         ),
     )
 
-async def call_gemma(
+async def _call_gemma_once(
     messages: list[dict[str, str]],
     response_schema: dict,
 ) -> dict:
@@ -415,7 +419,7 @@ async def call_gemma(
         "stream": False,
         "format": response_schema,
         "options": {
-            "temperature": 0.1,
+            "temperature": 0.0,
         },
     }
 
@@ -424,37 +428,41 @@ async def call_gemma(
             OLLAMA_URL,
             json=payload,
         )
-
         response.raise_for_status()
 
-        ollama_response = response.json()
+    ollama_response = response.json()
 
-        content = (
-            ollama_response
-            .get("message", {})
-            .get("content", "")
-            .strip()
+    content = (
+        ollama_response
+        .get("message", {})
+        .get("content", "")
+        .strip()
+    )
+
+    print("\nRAW GEMMA CONTENT:")
+    print(content)
+
+    if not content:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemma 3 returned an empty response.",
         )
 
-        print("RAW GEMMA CONTENT:")
-        print(content)
+    # Strip markdown fences if Gemma ignored instructions.
+    if content.startswith("```json"):
+        content = content[7:]
+    elif content.startswith("```"):
+        content = content[3:]
 
-        # Remove markdown fences if Gemma adds them.
-        if content.startswith("```json"):
-            content = content[7:]
+    if content.endswith("```"):
+        content = content[:-3]
 
-        elif content.startswith("```"):
-            content = content[3:]
-
-        if content.endswith("```"):
-            content = content[:-3]
-
-        content = content.strip()
+    content = content.strip()
 
     try:
         parsed = json.loads(content)
     except json.JSONDecodeError as error:
-        print("JSON ERROR:", repr(error))
+        print("JSON PARSE ERROR:", repr(error))
         raise HTTPException(
             status_code=502,
             detail="Gemma 3 returned malformed JSON.",
@@ -463,10 +471,41 @@ async def call_gemma(
     if not isinstance(parsed, dict):
         raise HTTPException(
             status_code=502,
-            detail="Gemma 3 returned the wrong response structure.",
+            detail="Gemma 3 returned the wrong JSON structure.",
         )
 
     return parsed
+
+async def call_gemma(
+    messages: list[dict[str, str]],
+    response_schema: dict,
+) -> dict:
+    last_error = None
+
+    for attempt in range(2):
+        try:
+            return await _call_gemma_once(
+                messages,
+                response_schema,
+            )
+
+        except HTTPException as error:
+            last_error = error
+
+            # Don't retry connection/timeout errors.
+            if error.status_code in (503, 504):
+                raise
+
+            if attempt == 0:
+                print(
+                    "Gemma response was invalid. "
+                    "Retrying once..."
+                )
+
+    raise last_error or HTTPException(
+        status_code=502,
+        detail="Gemma 3 failed to return valid JSON.",
+    )
 
 async def generate_overall_interview_feedback(
     questions_and_answers: list[dict],
@@ -792,6 +831,63 @@ def complete_interview(
     )
 
 @app.post(
+    "/interviews/{session_id}/cancel",
+    response_model=CancelInterviewResponse,
+)
+def cancel_interview(
+    session_id: int,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        interview = cursor.execute(
+            """
+            SELECT session_id, status
+            FROM Interview
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        ).fetchone()
+
+        if interview is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Interview session not found.",
+            )
+
+        if interview["status"] == "completed":
+            raise HTTPException(
+                status_code=400,
+                detail="A completed interview cannot be cancelled.",
+            )
+
+        cursor.execute(
+            """
+            UPDATE Interview
+            SET status = 'cancelled',
+                session_end_time = datetime('now')
+            WHERE session_id = ?
+              AND user_id = ?
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        )
+
+        db.conn.commit()
+
+    return CancelInterviewResponse(
+        session_id=session_id,
+        status="cancelled",
+    )
+
+@app.post(
     "/interviews/answer",
     response_model=AnswerFeedbackResponse,
 )
@@ -884,58 +980,75 @@ async def submit_interview_answer(
     evaluation = await call_gemma(
         messages=[
             {"role": "system",
-                        "content": """
-            You are a professional behavioral interviewer creating a mock
-            interview for a specific job candidate.
+            "content": """
+                You are an objective professional interview coach.
 
-            You MUST generate exactly five distinct behavioral interview questions.
+                Evaluate the candidate's response to the behavioral interview
+                question using the STAR method.
 
-            Every question MUST be specifically relevant to the TARGET JOB provided
-            by the user.
+                Score each STAR category from 0 through 25:
 
-            Do not generate generic interview questions that could apply equally
-            to every profession.
+                Situation:
+                Evaluate how clearly the candidate explains the context,
+                background, or circumstances.
 
-            Each question should test a different competency that is important
-            for the target job.
+                Task:
+                Evaluate how clearly the candidate explains their specific
+                responsibility, objective, or challenge.
 
-            Use these five competency areas:
+                Action:
+                Evaluate how clearly and specifically the candidate explains
+                the actions they personally took.
 
-            1. Role-specific technical problem solving
-            2. Collaboration or teamwork within the profession
-            3. Handling a mistake, failure, or difficult challenge
-            4. Prioritization, decision-making, or working under pressure
-            5. Initiative, improvement, leadership, or professional growth
+                Result:
+                Evaluate how clearly the candidate explains the outcome,
+                impact, measurable result, or lesson learned.
 
-            The questions must encourage answers using the STAR method.
+                Scoring guidance:
 
-            Tailor the wording and scenario to realistic responsibilities,
-            technical challenges, tools, workflows, and decisions associated
-            with the target job.
+                0-5:
+                The STAR component is mostly missing or unclear.
 
-            Do not ask duplicate or substantially similar questions.
+                6-12:
+                The component is present but vague or lacks important details.
 
-            Do not provide answers.
-            Do not provide explanations.
-            Do not number the questions.
-            Return only valid JSON matching the supplied schema.
-            """,
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""
-            TARGET JOB: {request.target_job}
+                13-19:
+                The component is clear and relevant but could be more specific.
 
-            Create exactly five behavioral interview questions specifically
-            designed for someone interviewing for this position.
+                20-25:
+                The component is detailed, specific, relevant, and compelling.
 
-            Make each question meaningfully related to the responsibilities
-            and challenges someone in this role would encounter.
-            """,
-                    },
-                ],
-                response_schema=question_schema,
-            )
+                Do not invent information that the candidate did not provide.
+
+                Do not reward details that are not present in the answer.
+
+                Provide:
+                - specific strengths
+                - specific areas for improvement
+                - concise overall feedback
+                - a stronger suggested answer that preserves the candidate's facts
+
+                Return only a JSON object matching the supplied schema.
+
+                Do not use markdown.
+                Do not use code fences.
+                Do not write any explanation before or after the JSON.
+                Do not rename fields.
+                Do not omit required fields.
+                """,
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Interview Question:\n"
+                                f"{question_text}\n\n"
+                                f"Candidate Answer:\n"
+                                f"{request.answer}"
+                            ),
+                        },
+                    ],
+                response_schema=feedback_schema,
+    )
 
     scores = evaluation["scores"]
 

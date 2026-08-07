@@ -383,3 +383,22 @@ export async function getInterviewSession(
 
   return parseApiResponse(response);
 }
+
+export async function cancelMockInterview(
+  sessionId: number
+) {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${sessionId}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return parseApiResponse(response);
+}
