@@ -1,6 +1,88 @@
 export const API_BASE_URL = "http://10.0.2.2:8000";
 import * as SecureStore from "expo-secure-store";
 
+export type ResumeUploadResponse = {
+  message: string;
+  filename: string;
+  stored_filename?: string;
+};
+
+export type InterviewAnswerResult = {
+  question_id: number;
+  question_order: number;
+  question_text: string;
+  answer_id: number;
+  response: string;
+
+  situation_score: number;
+  task_score: number;
+  action_score: number;
+  results_score: number;
+  total_score: number;
+
+  feedback_text: string;
+  strengths: string[];
+  improvements: string[];
+  suggested_answer: string;
+};
+
+export type CompletedInterview = {
+  interview: {
+    session_id: number;
+    target_job?: string;
+    status: string;
+    score: number;
+
+    overall_feedback?: string;
+    overall_strengths: string[];
+    overall_improvements: string[];
+  };
+
+  questions: InterviewAnswerResult[];
+};
+
+type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  user: {
+    user_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+};
+
+export type InterviewQuestion = {
+  question_id: number;
+  question_order: number;
+  question: string;
+};
+
+export type StartInterviewResult = {
+  session_id: number;
+  questions: InterviewQuestion[];
+};
+
+export type StarFeedback = {
+  answer_id: number;
+  total_score: number;
+  scores: {
+    situation: number;
+    task: number;
+    action: number;
+    result: number;
+  };
+  strengths: string[];
+  improvements: string[];
+  feedback: string;
+  suggested_answer: string;
+};
+
 export async function signupAccount(account: {
   first_name: string;
   last_name: string;
@@ -62,22 +144,6 @@ export async function signupAccount(account: {
 
   return responseData;
 }
-
-type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-type LoginResponse = {
-  access_token: string;
-  token_type: string;
-  user: {
-    user_id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-};
 
 export async function loginAccount(
   credentials: LoginRequest
@@ -143,12 +209,6 @@ export async function getCurrentUser() {
   return data;
 }
 
-export type ResumeUploadResponse = {
-  message: string;
-  filename: string;
-  stored_filename?: string;
-};
-
 export async function uploadResume(
   file: {
     uri: string;
@@ -198,31 +258,7 @@ export async function uploadResume(
   return responseData;
 }
 
-export type InterviewQuestion = {
-  question_id: number;
-  question_order: number;
-  question: string;
-};
 
-export type StartInterviewResult = {
-  session_id: number;
-  questions: InterviewQuestion[];
-};
-
-export type StarFeedback = {
-  answer_id: number;
-  total_score: number;
-  scores: {
-    situation: number;
-    task: number;
-    action: number;
-    result: number;
-  };
-  strengths: string[];
-  improvements: string[];
-  feedback: string;
-  suggested_answer: string;
-};
 
 async function getAccessToken(): Promise<string> {
   const token = await SecureStore.getItemAsync("access_token");
@@ -320,6 +356,24 @@ export async function completeMockInterview(
     `${API_BASE_URL}/interviews/${sessionId}/complete`,
     {
       method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return parseApiResponse(response);
+}
+
+export async function getInterviewSession(
+  sessionId: number
+): Promise<CompletedInterview> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/${sessionId}`,
+    {
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   console.log("Home.tsx loaded");
@@ -46,12 +47,17 @@ useEffect(() => {
   };  
 
   return (
-    <View style={styles.page}>
+  <SafeAreaView style={styles.page}>
+    <View style={styles.header}>
       <Pressable style={styles.menuButton} onPress={() => setMenuOpen(!menuOpen)}>
         <View style={styles.menuLine} />
         <View style={styles.menuLine} />
         <View style={styles.menuLine} />
       </Pressable>
+
+      <Text style={styles.headerTitle}>Welcome Back{firstName ? `, ${firstName}!` : "!"}</Text>
+      
+      <View style={styles.headerSpacer} />
 
       {menuOpen && (
         <View style={styles.dropdown}>
@@ -100,7 +106,6 @@ useEffect(() => {
     
     <ScrollView style={styles.page}>
       <View style={styles.container}>
-        <Text style={styles.title}>Welcome Back{firstName ? `, ${firstName}!` : "!"}</Text>
         
         <Text style={styles.subtitle}>
           Ready to ace your next interview?
@@ -135,6 +140,7 @@ useEffect(() => {
       </View>
     </ScrollView>
   </View>
+</SafeAreaView>
   );
 }
 
@@ -201,43 +207,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
   },
-    menuButton: {
-    position: "absolute",
-    top: 60,
-    left: 24,
-    width: 40,
-    height: 40,
+menuButton: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
-    gap: 5,
-    zIndex: 10,
+    alignItems: "center",
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    elevation: 5,
   },
+
   menuLine: {
-    height: 3,
     width: 24,
+    height: 3,
+    marginVertical: 2.5,
     borderRadius: 2,
     backgroundColor: "#27245C",
   },
-    dropdown: {
+
+  dropdown: {
     position: "absolute",
-    top: 105,
-    left: 24,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    top: 64,
+    left: 18,
+    minWidth: 180,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: "#DFE2EA",
-    paddingVertical: 6,
-    minWidth: 180,
-    zIndex: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    zIndex: 100,
+    elevation: 30,
   },
+
   dropdownItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
+
   dropdownText: {
     fontSize: 16,
     fontWeight: "600",
@@ -249,4 +255,25 @@ const styles = StyleSheet.create({
   textAlign: "center",
   marginBottom: 30,
 },
+  header: {
+    height: 64,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F7F8FC",
+    zIndex: 20,
+    elevation: 20,
+  },
+
+  headerTitle: {
+    alignSelf: 'center',
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#27245C",
+  },
+
+  headerSpacer: {
+    width: 44,
+  },
 });

@@ -1,38 +1,32 @@
 import sqlite3
 
-DATABASE_PATH = "interviewiq.db"
+DATABASE = "interviewiq.db"
 
-migrations = [
-    ("Interview", "target_job", "TEXT"),
-    ("Interview", "status", "TEXT"),
-    ("Interview", "model_name", "TEXT"),
-    ("Question", "question_order", "INTEGER"),
-    ("Answer", "total_score", "INTEGER"),
-    ("Feedback", "feedback_text", "TEXT"),
-    ("Feedback", "strengths", "TEXT"),
-    ("Feedback", "improvements", "TEXT"),
-    ("Feedback", "model_name", "TEXT"),
-    ("Feedback", "raw_model_response", "TEXT"),
-]
+conn = sqlite3.connect(DATABASE)
+cursor = conn.cursor()
 
-with sqlite3.connect(DATABASE_PATH) as connection:
-    for table, column, data_type in migrations:
-        existing_columns = {
-            row[1]
-            for row in connection.execute(
-                f"PRAGMA table_info({table})"
-            ).fetchall()
-        }
+try:
+    cursor.execute("""
+        ALTER TABLE Interview
+        ADD COLUMN overall_feedback TEXT
+    """)
 
-        if column in existing_columns:
-            print(f"Already exists: {table}.{column}")
-            continue
+    cursor.execute("""
+        ALTER TABLE Interview
+        ADD COLUMN overall_strengths TEXT
+    """)
 
-        connection.execute(
-            f"ALTER TABLE {table} ADD COLUMN {column} {data_type}"
-        )
-        print(f"Added: {table}.{column}")
+    cursor.execute("""
+        ALTER TABLE Interview
+        ADD COLUMN overall_improvements TEXT
+    """)
 
-    connection.commit()
+    conn.commit()
 
-print("Database migration complete.")
+    print("Interview table updated successfully!")
+
+except sqlite3.Error as error:
+    print("Database error:", error)
+
+finally:
+    conn.close()

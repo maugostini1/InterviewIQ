@@ -10,7 +10,7 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from pwdlib import PasswordHash
 import traceback
 from database import InterviewIQDB
@@ -112,6 +112,11 @@ class CompleteInterviewResponse(BaseModel):
     session_id: int
     status: str
     average_score: float
+
+class OverallInterviewFeedback(BaseModel):
+    overall_feedback: str
+    overall_strengths: list[str]
+    overall_improvements: list[str]
 
 def normalize_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -414,82 +419,134 @@ async def call_gemma(
         },
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            response = await client.post(
-                OLLAMA_URL,
-                json=payload,
-            )
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        response = await client.post(
+            OLLAMA_URL,
+            json=payload,
+        )
 
-            response.raise_for_status()
+        response.raise_for_status()
 
         ollama_response = response.json()
 
-        content = ollama_response["message"]["content"].strip()
+        content = (
+            ollama_response
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
 
         print("RAW GEMMA CONTENT:")
         print(content)
 
         # Remove markdown fences if Gemma adds them.
         if content.startswith("```json"):
-            content = content[len("```json"):]
+            content = content[7:]
 
         elif content.startswith("```"):
-            content = content[len("```"):]
+            content = content[3:]
 
         if content.endswith("```"):
             content = content[:-3]
 
         content = content.strip()
 
+    try:
         parsed = json.loads(content)
-
-        if not isinstance(parsed, dict):
-            raise ValueError(
-                "Gemma response was not a JSON object."
-            )
-
-        return parsed
-
-    except httpx.ConnectError as error:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Could not connect to Gemma 3. "
-                "Make sure Ollama is running."
-            ),
-        ) from error
-
-    except httpx.TimeoutException as error:
-        raise HTTPException(
-            status_code=504,
-            detail="Gemma 3 took too long to respond.",
-        ) from error
-
-    except httpx.HTTPStatusError as error:
-        print("OLLAMA ERROR BODY:", error.response.text)
-
+    except json.JSONDecodeError as error:
+        print("JSON ERROR:", repr(error))
         raise HTTPException(
             status_code=502,
-            detail=(
-                "Gemma 3 request failed with status "
-                f"{error.response.status_code}."
-            ),
+            detail="Gemma 3 returned malformed JSON.",
         ) from error
 
-    except (
-        KeyError,
-        ValueError,
-        json.JSONDecodeError,
-    ) as error:
-        print("GEMMA PARSE ERROR:", repr(error))
-
+    if not isinstance(parsed, dict):
         raise HTTPException(
             status_code=502,
-            detail=(
-                "Gemma 3 returned an invalid structured response."
-            ),
-        ) from error
+            detail="Gemma 3 returned the wrong response structure.",
+        )
+
+    return parsed
+
+async def generate_overall_interview_feedback(
+    questions_and_answers: list[dict],
+) -> dict:
+    feedback_schema = {
+        "type": "object",
+        "properties": {
+            "overall_feedback": {
+                "type": "string",
+            },
+            "overall_strengths": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "overall_improvements": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+        },
+        "required": [
+            "overall_feedback",
+            "overall_strengths",
+            "overall_improvements",
+        ],
+    }
+
+    interview_text = ""
+
+    for index, item in enumerate(
+        questions_and_answers,
+        start=1,
+    ):
+        interview_text += (
+            f"\nQuestion {index}:\n"
+            f"{item['question_text']}\n\n"
+            f"Candidate Answer:\n"
+            f"{item['response']}\n\n"
+            f"STAR Score: {item['total_score']}/100\n"
+            f"Situation: {item['situation_score']}/25\n"
+            f"Task: {item['task_score']}/25\n"
+            f"Action: {item['action_score']}/25\n"
+            f"Result: {item['results_score']}/25\n"
+        )
+
+    return await call_gemma(
+        messages=[
+            {
+                "role": "system",
+                "content": """
+                You are a professional interview coach.
+
+                Review the candidate's entire five-question behavioral interview.
+
+                Identify patterns across all five STAR answers.
+
+                Evaluate:
+                - clarity of situations
+                - ownership of tasks
+                - specificity of actions
+                - strength and measurability of results
+                - consistency across answers
+                - communication quality
+
+                Provide:
+                1. A concise overall assessment.
+                2. The candidate's strongest recurring behaviors.
+                3. The most important recurring areas for improvement.
+
+                Do not invent facts.
+                Base the evaluation only on the interview provided.
+                Return only valid JSON matching the supplied schema.
+                """,
+            },
+            {
+                "role": "user",
+                "content": interview_text,
+            },
+        ],
+        response_schema=feedback_schema,
+    )
     
 #interview questions
 @app.post(
@@ -679,6 +736,36 @@ def complete_interview(
             float(score_row["average_score"] or 0),
             2,
         )
+
+        answer_rows = cursor.execute(
+            """
+            SELECT
+                q.question_order,
+                q.question_text,
+                a.response,
+                a.situation_score,
+                a.task_score,
+                a.action_score,
+                a.results_score,
+                a.total_score
+            FROM Question q
+            JOIN Answer a
+                ON a.question_id = q.question_id
+            WHERE q.session_id = ?
+              AND a.user_id = ?
+            ORDER BY q.question_order
+            """,
+            (
+                session_id,
+                current_user.user_id,
+            ),
+        ).fetchall()
+
+        interview_answers = [
+            dict(row)
+            for row in answer_rows
+        ]
+
 
         cursor.execute(
             """
@@ -988,7 +1075,22 @@ def get_interview_session(
 
         questions.append(item)
 
+    interview_data = dict(interview)
+
+    interview_data["overall_strengths"] = (
+        json.loads(interview_data["overall_strengths"])
+        if interview_data.get("overall_strengths")
+        else []
+    )
+
+    interview_data["overall_improvements"] = (
+        json.loads(interview_data["overall_improvements"])
+        if interview_data.get("overall_improvements")
+        else []
+    )
+
     return {
-        "interview": dict(interview),
+        "interview": interview_data,
         "questions": questions,
     }
+
