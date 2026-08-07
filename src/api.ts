@@ -83,6 +83,21 @@ export type StarFeedback = {
   suggested_answer: string;
 };
 
+export type InterviewHistoryItem = {
+  session_id: number;
+  target_job: string | null;
+  session_start_time: string;
+  session_end_time: string | null;
+  score: number | null;
+  status: string;
+};
+
+export type InterviewHistory = {
+  total_interviews: number;
+  average_score: number;
+  interviews: InterviewHistoryItem[];
+};
+
 export async function signupAccount(account: {
   first_name: string;
   last_name: string;
@@ -401,4 +416,49 @@ export async function cancelMockInterview(
   );
 
   return parseApiResponse(response);
+}
+
+export async function getInterviewHistory():
+  Promise<InterviewHistory> {
+
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/interviews/history`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const responseText = await response.text();
+
+  console.log(
+    "History response status:",
+    response.status
+  );
+
+  console.log(
+    "History response body:",
+    responseText
+  );
+
+  if (!response.ok) {
+    let message = responseText;
+
+    try {
+      const errorData = JSON.parse(responseText);
+      message =
+        errorData.detail ?? responseText;
+    } catch {
+      // plain text response
+    }
+
+    throw new Error(message);
+  }
+
+  return JSON.parse(responseText);
 }

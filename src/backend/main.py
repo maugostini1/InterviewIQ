@@ -1130,6 +1130,53 @@ async def submit_interview_answer(
         suggested_answer=evaluation["suggested_answer"],
     )
 
+@app.get("/interviews/history")
+def get_interview_history(
+    current_user: UserResponse = Depends(get_current_user),
+):
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        rows = cursor.execute(
+            """
+            SELECT
+                session_id,
+                target_job,
+                session_start_time,
+                session_end_time,
+                score,
+                status
+            FROM Interview
+            WHERE user_id = ?
+              AND status = 'completed'
+            ORDER BY session_end_time ASC
+            """,
+            (current_user.user_id,),
+        ).fetchall()
+
+    interviews = [
+        dict(row)
+        for row in rows
+    ]
+
+    scores = [
+        float(interview["score"])
+        for interview in interviews
+        if interview["score"] is not None
+    ]
+
+    average_score = (
+        round(sum(scores) / len(scores), 1)
+        if scores
+        else 0
+    )
+
+    return {
+        "total_interviews": len(interviews),
+        "average_score": average_score,
+        "interviews": interviews,
+    }
+
 @app.get("/interviews/{session_id}")
 def get_interview_session(
     session_id: int,
@@ -1222,4 +1269,3 @@ def get_interview_session(
         "interview": interview_data,
         "questions": questions,
     }
-

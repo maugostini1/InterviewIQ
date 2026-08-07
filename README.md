@@ -27,4 +27,4 @@
 
 ** To run backend: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ** To run Ollama: ollama run gemma3
-\*\* To ensure expo run correct android emulator: npx expo run:android
+** To ensure expo run correct android emulator: npx expo run:android

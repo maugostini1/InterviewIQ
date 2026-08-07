@@ -1894,3 +1894,174 @@
 {"_e":"metro:client_log","_t":1786127621723,"level":"log","data":["Home.tsx loaded"]}
 {"_e":"metro:client_log","_t":1786127621806,"level":"log","data":["Saved user:","{\"career_field\": \"Marketing\", \"email\": \"smith@live.com\", \"first_name\": \"John\", \"last_name\": \"Smith\", \"target_job\": \"Retail Management\", \"user_id\": 2}"]}
 {"_e":"metro:client_log","_t":1786127621810,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"root:init","_t":1786136781588,"format":"v0-jsonl","version":"57.0.11"}
+{"_e":"env:mode","_t":1786136781608,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786136781647,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1786136792079,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786136801992,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1786136805370,"plugins":[{"packageName":"expo-sqlite","bannerTitle":"expo-sqlite","cliBanner":false,"webpageEndpoint":"/_expo/plugins/expo-sqlite"}]}
+{"_e":"metro:instantiate","_t":1786136819725,"atlas":false,"workers":10,"host":"::","port":8081}
+{"_e":"metro:client_log","_t":1786136858291,"level":"error","data":["Your app just crashed. See the error below.\njava.lang.RuntimeException: Unable to start activity ComponentInfo{com.anonymous.InterviewIQ/com.anonymous.InterviewIQ.MainActivity}\n  android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4496)\n  android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4699)\n  android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:224)\n  android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)\n  android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)\n  android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)\n  android.app.ActivityThread$H.handleMessage(ActivityThread.java:2961)\n  android.os.Handler.dispatchMessage(Handler.java:132)\n  android.os.Looper.dispatchMessage(Looper.java:333)\n  android.os.Looper.loopOnce(Looper.java:263)\n  android.os.Looper.loop(Looper.java:367)\n  android.app.ActivityThread.main(ActivityThread.java:9287)\n  java.lang.reflect.Method.invoke(Native Method)\n  com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:566)\n  com.android.internal.os.ZygoteInit.main(ZygoteInit.java:929)\nCaused by java.lang.IllegalArgumentException: App react context shouldn't be created before.\n  expo.modules.devlauncher.launcher.loaders.DevLauncherAppLoader.createOnDelegateWillBeCreatedListener$lambda$1(DevLauncherAppLoader.kt:49)\n  expo.modules.devlauncher.launcher.loaders.DevLauncherAppLoader.$r8$lambda$qJDs5uQrozfB3coXC15_j-4Po8g(Unknown Source:0)\n  expo.modules.devlauncher.launcher.loaders.DevLauncherAppLoader$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)\n  expo.modules.devlauncher.launcher.DevLauncherLifecycle.delegateWillBeCreated(DevLauncherLifecycle.kt:16)\n  expo.modules.devlauncher.DevLauncherController$Companion.wrapReactActivityDelegate(DevLauncherController.kt:539)\n  expo.modules.devlauncher.DevLauncherPackageDelegate$createReactActivityHandlers$1.onDidCreateReactActivityDelegate(DevLauncherPackageDelegate.kt:72)\n  expo.modules.ReactActivityDelegateWrapper.onCreate$lambda$6(ReactActivityDelegateWrapper.kt:121)\n  expo.modules.ReactActivityDelegateWrapper.$r8$lambda$6Bl75txsUT2aYxhkWG0nYkUoMJY(Unknown Source:0)\n  expo.modules.ReactActivityDelegateWrapper$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)\n  kotlin.sequences.TransformingSequence$iterator$1.next(Sequences.kt:243)\n  kotlin.sequences.FilteringSequence$iterator$1.calcNext(Sequences.kt:203)\n  kotlin.sequences.FilteringSequence$iterator$1.hasNext(Sequences.kt:227)\n  kotlin.sequences.SequencesKt___SequencesKt.firstOrNull(_Sequences.kt:172)\n  expo.modules.ReactActivityDelegateWrapper.onCreate(ReactActivityDelegateWrapper.kt:122)\n  com.facebook.react.ReactActivity.onCreate(ReactActivity.java:61)\n  com.anonymous.InterviewIQ.MainActivity.onCreate(MainActivity.kt:23)\n  android.app.Activity.performCreate(Activity.java:9306)\n  android.app.Activity.performCreate(Activity.java:9284)\n  android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1541)\n  android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4480)\n  android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4699)\n  android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:224)\n  android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)\n  android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)\n  android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)\n  android.app.ActivityThread$H.handleMessage(ActivityThread.java:2961)\n  android.os.Handler.dispatchMessage(Handler.java:132)\n  android.os.Looper.dispatchMessage(Looper.java:333)\n  android.os.Looper.loopOnce(Looper.java:263)\n  android.os.Looper.loop(Looper.java:367)\n  android.app.ActivityThread.main(ActivityThread.java:9287)\n  java.lang.reflect.Method.invoke(Native Method)\n  com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:566)\n  com.android.internal.os.ZygoteInit.main(ZygoteInit.java:929)"]}
+{"_e":"root:init","_t":1786137134555,"format":"v0-jsonl","version":"57.0.13"}
+{"_e":"devserver:start","_t":1786137134591,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786137135251,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1786137135766,"plugins":[{"packageName":"expo-sqlite","bannerTitle":"expo-sqlite","cliBanner":false,"webpageEndpoint":"/_expo/plugins/expo-sqlite"}]}
+{"_e":"metro:instantiate","_t":1786137146741,"atlas":false,"workers":10,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786137159120,"id":"1","platform":"android","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786137159121,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786137159124,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786137159224,"id":"1","progress":0.18367346938775508,"total":42,"current":18}
+{"_e":"metro:bundling:progress","_t":1786137159324,"id":"1","progress":0.18367346938775508,"total":227,"current":52}
+{"_e":"metro:bundling:progress","_t":1786137159424,"id":"1","progress":0.2231387930771344,"total":362,"current":171}
+{"_e":"metro:bundling:progress","_t":1786137159524,"id":"1","progress":0.2755244344622069,"total":522,"current":274}
+{"_e":"metro:bundling:progress","_t":1786137159624,"id":"1","progress":0.36083381558641975,"total":576,"current":346}
+{"_e":"metro:bundling:progress","_t":1786137159724,"id":"1","progress":0.4917625885052015,"total":636,"current":446}
+{"_e":"metro:bundling:progress","_t":1786137159824,"id":"1","progress":0.7748064025120303,"total":693,"current":610}
+{"_e":"metro:bundling:progress","_t":1786137159932,"id":"1","progress":0.7748064025120303,"total":756,"current":645}
+{"_e":"metro:bundling:progress","_t":1786137160100,"id":"1","progress":0.7748064025120303,"total":756,"current":646}
+{"_e":"metro:bundling:progress","_t":1786137160200,"id":"1","progress":0.7748064025120303,"total":815,"current":702}
+{"_e":"metro:bundling:progress","_t":1786137160301,"id":"1","progress":0.7748064025120303,"total":936,"current":800}
+{"_e":"metro:bundling:progress","_t":1786137160402,"id":"1","progress":0.7748064025120303,"total":936,"current":802}
+{"_e":"metro:bundling:progress","_t":1786137160640,"id":"1","progress":0.7748064025120303,"total":936,"current":803}
+{"_e":"metro:bundling:progress","_t":1786137160743,"id":"1","progress":0.7748064025120303,"total":950,"current":808}
+{"_e":"metro:bundling:progress","_t":1786137160843,"id":"1","progress":0.7849021698101467,"total":982,"current":870}
+{"_e":"metro:bundling:progress","_t":1786137160943,"id":"1","progress":0.7849021698101467,"total":1060,"current":938}
+{"_e":"metro:bundling:progress","_t":1786137161128,"id":"1","progress":0.7849021698101467,"total":1060,"current":939}
+{"_e":"metro:bundling:progress","_t":1786137161232,"id":"1","progress":0.7981568173727305,"total":1060,"current":947}
+{"_e":"metro:bundling:progress","_t":1786137161275,"id":"1","progress":0.7998433606265576,"total":1060,"current":948}
+{"_e":"metro:bundling:progress","_t":1786137161376,"id":"1","progress":0.8032217871128516,"total":1060,"current":950}
+{"_e":"metro:bundling:progress","_t":1786137161476,"id":"1","progress":0.9143268154936333,"total":1096,"current":1048}
+{"_e":"metro:bundling:progress","_t":1786137161578,"id":"1","progress":0.9287222374102853,"total":1102,"current":1062}
+{"_e":"metro:bundling:progress","_t":1786137161678,"id":"1","progress":0.9287222374102853,"total":1140,"current":1096}
+{"_e":"metro:bundling:progress","_t":1786137161814,"id":"1","progress":0.9287222374102853,"total":1140,"current":1097}
+{"_e":"metro:bundling:progress","_t":1786137161914,"id":"1","progress":0.9426281900919498,"total":1168,"current":1134}
+{"_e":"metro:bundling:progress","_t":1786137162018,"id":"1","progress":0.9426281900919498,"total":1214,"current":1152}
+{"_e":"metro:bundling:progress","_t":1786137162123,"id":"1","progress":0.9426281900919498,"total":1225,"current":1170}
+{"_e":"metro:bundling:progress","_t":1786137162170,"id":"1","progress":0.9426281900919498,"total":1225,"current":1171}
+{"_e":"metro:bundling:progress","_t":1786137162270,"id":"1","progress":0.9426281900919498,"total":1308,"current":1233}
+{"_e":"metro:bundling:progress","_t":1786137162370,"id":"1","progress":0.9557040203481573,"total":1384,"current":1353}
+{"_e":"metro:bundling:progress","_t":1786137162470,"id":"1","progress":0.9971387711370464,"total":1397,"current":1395}
+{"_e":"metro:bundling:progress","_t":1786137167572,"id":"1","progress":0.9985688731708041,"total":1397,"current":1396}
+{"_e":"metro:bundling:progress","_t":1786137167677,"id":"1","progress":0.9985749912746792,"total":1403,"current":1402}
+{"_e":"metro:bundling:done","_t":1786137167863,"id":"1","total":1403,"ms":8742.7353}
+{"_e":"metro:client_log","_t":1786137175172,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1786137207020,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"metro:client_log","_t":1786137207134,"level":"log","data":["Saved user:","{\"career_field\": \"Marketing\", \"email\": \"smith@live.com\", \"first_name\": \"John\", \"last_name\": \"Smith\", \"target_job\": \"Retail Management\", \"user_id\": 2}"]}
+{"_e":"metro:client_log","_t":1786137207142,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"metro:client_log","_t":1786137213076,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"metro:client_log","_t":1786137214906,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"metro:client_log","_t":1786137216680,"level":"log","data":["Starting interview for:","Retail Management"]}
+{"_e":"metro:client_log","_t":1786137221727,"level":"log","data":["Response status:","200"]}
+{"_e":"metro:client_log","_t":1786137221728,"level":"log","data":["Response body:","{\"session_id\":230,\"questions\":[{\"question_id\":1130,\"question_order\":1,\"question\":\"Tell me about a time you had to deal with a difficult customer. What specific steps did you take to resolve the situation and what was the outcome?\"},{\"question_id\":1131,\"question_order\":2,\"question\":\"Describe a situation where you successfully motivated a team member who was struggling. What approach did you use, and how did you measure their improvement?\"},{\"question_id\":1132,\"question_order\":3,\"question\":\"Give an example of when you identified a problem within your previous role that wasn’t immediately obvious. How did you bring it to attention, and what actions were taken as a result?\"},{\"question_id\":1133,\"question_order\":4,\"question\":\"Share an instance where you had to make a quick decision with limited information while managing multiple priorities. What was the situation, what factors did you consider, and what was the final outcome?\"},{\"question_id\":1134,\"question_order\":5,\"question\":\"Describe a time you received constructive criticism that challenged your approach or performance. How did you react to the feedback, and what changes did you implement?\"}]}"]}
+{"_e":"metro:client_log","_t":1786137221728,"level":"log","data":["Interview session:","230"]}
+{"_e":"metro:client_log","_t":1786137221728,"level":"log","data":["Questions received:","[{\"question\": \"Tell me about a time you had to deal with a difficult customer. What specific steps did you take to resolve the situation and what was the outcome?\", \"question_id\": 1130, \"question_order\": 1}, {\"question\": \"Describe a situation where you successfully motivated a team member who was struggling. What approach did you use, and how did you measure their improvement?\", \"question_id\": 1131, \"question_order\": 2}, {\"question\": \"Give an example of when you identified a problem within your previous role that wasn’t immediately obvious. How did you bring it to attention, and what actions were taken as a result?\", \"question_id\": 1132, \"question_order\": 3}, {\"question\": \"Share an instance where you had to make a quick decision with limited information while managing multiple priorities. What was the situation, what factors did you consider, and what was the final outcome?\", \"question_id\": 1133, \"question_order\": 4}, {\"question\": \"Describe a time you received constructive criticism that challenged your approach or performance. How did you react to the feedback, and what changes did you implement?\", \"question_id\": 1134, \"question_order\": 5}]"]}
+{"_e":"metro:client_log","_t":1786137225557,"level":"log","data":["Response status:","200"]}
+{"_e":"metro:client_log","_t":1786137225559,"level":"log","data":["Response body:","{\"session_id\":230,\"status\":\"cancelled\"}"]}
+{"_e":"metro:client_log","_t":1786137225628,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"metro:client_log","_t":1786137225694,"level":"log","data":["Saved user:","{\"career_field\": \"Marketing\", \"email\": \"smith@live.com\", \"first_name\": \"John\", \"last_name\": \"Smith\", \"target_job\": \"Retail Management\", \"user_id\": 2}"]}
+{"_e":"metro:client_log","_t":1786137225699,"level":"log","data":["Home.tsx loaded"]}
+{"_e":"root:init","_t":1786137626005,"format":"v0-jsonl","version":"57.0.13"}
+{"_e":"env:mode","_t":1786137626008,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786137626032,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1786137629947,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\src\\app","serverComponents":false,"serverActions":false,"serverRendering":true,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786137630498,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":true,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1786137630950,"plugins":[{"packageName":"expo-sqlite","bannerTitle":"expo-sqlite","cliBanner":false,"webpageEndpoint":"/_expo/plugins/expo-sqlite"}]}
+{"_e":"metro:instantiate","_t":1786137643139,"atlas":false,"workers":10,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786137727534,"id":"1","platform":"android","environment":null,"entry":"node_modules\\expo-router\\entry.js"}
+{"_e":"metro:bundling:progress","_t":1786137727534,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786137727539,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786137728273,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786137728381,"id":"1","progress":0.09,"total":5,"current":3}
+{"_e":"metro:bundling:progress","_t":1786137728493,"id":"1","progress":0.1111111111111111,"total":12,"current":4}
+{"_e":"metro:bundling:progress","_t":1786137729135,"id":"1","progress":0.17361111111111113,"total":12,"current":5}
+{"_e":"metro:bundling:progress","_t":1786137729238,"id":"1","progress":0.17361111111111113,"total":30,"current":12}
+{"_e":"metro:bundling:progress","_t":1786137729352,"id":"1","progress":0.17361111111111113,"total":36,"current":14}
+{"_e":"metro:bundling:progress","_t":1786137729369,"id":"1","progress":0.17361111111111113,"total":36,"current":15}
+{"_e":"metro:bundling:progress","_t":1786137729478,"id":"1","progress":0.17361111111111113,"total":58,"current":18}
+{"_e":"metro:bundling:progress","_t":1786137729583,"id":"1","progress":0.17361111111111113,"total":60,"current":22}
+{"_e":"metro:bundling:progress","_t":1786137729683,"id":"1","progress":0.17361111111111113,"total":66,"current":24}
+{"_e":"metro:bundling:progress","_t":1786137729783,"id":"1","progress":0.1936,"total":75,"current":33}
+{"_e":"metro:bundling:progress","_t":1786137729884,"id":"1","progress":0.1936,"total":110,"current":46}
+{"_e":"metro:bundling:progress","_t":1786137729998,"id":"1","progress":0.1936,"total":130,"current":51}
+{"_e":"metro:bundling:progress","_t":1786137730099,"id":"1","progress":0.1936,"total":284,"current":70}
+{"_e":"metro:bundling:progress","_t":1786137730200,"id":"1","progress":0.1936,"total":320,"current":89}
+{"_e":"metro:bundling:progress","_t":1786137730304,"id":"1","progress":0.1936,"total":336,"current":109}
+{"_e":"metro:bundling:progress","_t":1786137730404,"id":"1","progress":0.1936,"total":377,"current":113}
+{"_e":"metro:bundling:progress","_t":1786137730969,"id":"1","progress":0.1936,"total":377,"current":114}
+{"_e":"metro:bundling:progress","_t":1786137731070,"id":"1","progress":0.1936,"total":419,"current":133}
+{"_e":"metro:bundling:progress","_t":1786137731172,"id":"1","progress":0.1936,"total":447,"current":150}
+{"_e":"metro:bundling:progress","_t":1786137731272,"id":"1","progress":0.1936,"total":456,"current":165}
+{"_e":"metro:bundling:progress","_t":1786137731375,"id":"1","progress":0.1936,"total":499,"current":194}
+{"_e":"metro:bundling:progress","_t":1786137731485,"id":"1","progress":0.1936,"total":526,"current":227}
+{"_e":"metro:bundling:progress","_t":1786137731585,"id":"1","progress":0.22592903288336913,"total":547,"current":260}
+{"_e":"metro:bundling:progress","_t":1786137731686,"id":"1","progress":0.23497255430315653,"total":557,"current":270}
+{"_e":"metro:bundling:progress","_t":1786137731791,"id":"1","progress":0.23958448753462605,"total":570,"current":279}
+{"_e":"metro:bundling:progress","_t":1786137731891,"id":"1","progress":0.23958448753462605,"total":599,"current":287}
+{"_e":"metro:bundling:progress","_t":1786137731993,"id":"1","progress":0.24032350475867117,"total":614,"current":301}
+{"_e":"metro:bundling:progress","_t":1786137732093,"id":"1","progress":0.2628184585803557,"total":632,"current":324}
+{"_e":"metro:bundling:progress","_t":1786137732193,"id":"1","progress":0.2759880226804561,"total":651,"current":342}
+{"_e":"metro:bundling:progress","_t":1786137732294,"id":"1","progress":0.29857824297056174,"total":657,"current":359}
+{"_e":"metro:bundling:progress","_t":1786137732397,"id":"1","progress":0.3090004444715949,"total":689,"current":383}
+{"_e":"metro:bundling:progress","_t":1786137732497,"id":"1","progress":0.34505354785075065,"total":715,"current":420}
+{"_e":"metro:bundling:progress","_t":1786137732597,"id":"1","progress":0.36518678595559456,"total":743,"current":449}
+{"_e":"metro:bundling:progress","_t":1786137732698,"id":"1","progress":0.3878038846490261,"total":774,"current":482}
+{"_e":"metro:bundling:progress","_t":1786137732799,"id":"1","progress":0.391771928670919,"total":818,"current":512}
+{"_e":"metro:bundling:progress","_t":1786137732899,"id":"1","progress":0.39889196675900274,"total":855,"current":540}
+{"_e":"metro:bundling:progress","_t":1786137733022,"id":"1","progress":0.4093643607124839,"total":869,"current":556}
+{"_e":"metro:bundling:progress","_t":1786137733125,"id":"1","progress":0.41920137891410514,"total":885,"current":573}
+{"_e":"metro:bundling:progress","_t":1786137733234,"id":"1","progress":0.42507453158415526,"total":885,"current":577}
+{"_e":"metro:bundling:progress","_t":1786137733335,"id":"1","progress":0.4509895591824672,"total":886,"current":595}
+{"_e":"metro:bundling:progress","_t":1786137733437,"id":"1","progress":0.4743959096073729,"total":890,"current":613}
+{"_e":"metro:bundling:progress","_t":1786137733539,"id":"1","progress":0.5216948043072347,"total":893,"current":645}
+{"_e":"metro:bundling:progress","_t":1786137733640,"id":"1","progress":0.5446670370328942,"total":897,"current":662}
+{"_e":"metro:bundling:progress","_t":1786137733743,"id":"1","progress":0.5503644345735246,"total":922,"current":684}
+{"_e":"metro:bundling:progress","_t":1786137733843,"id":"1","progress":0.5538854387792325,"total":954,"current":710}
+{"_e":"metro:bundling:progress","_t":1786137733944,"id":"1","progress":0.5742062420431311,"total":966,"current":732}
+{"_e":"metro:bundling:progress","_t":1786137734046,"id":"1","progress":0.5814647852501077,"total":977,"current":745}
+{"_e":"metro:bundling:progress","_t":1786137734151,"id":"1","progress":0.5814647852501077,"total":984,"current":746}
+{"_e":"metro:bundling:progress","_t":1786137734252,"id":"1","progress":0.5950576492648946,"total":993,"current":766}
+{"_e":"metro:bundling:progress","_t":1786137734352,"id":"1","progress":0.6269989762067268,"total":1004,"current":795}
+{"_e":"metro:bundling:progress","_t":1786137734452,"id":"1","progress":0.6575443583962357,"total":1010,"current":819}
+{"_e":"metro:bundling:progress","_t":1786137734552,"id":"1","progress":0.6906069849552406,"total":1012,"current":841}
+{"_e":"metro:bundling:progress","_t":1786137734653,"id":"1","progress":0.7254053539559785,"total":1025,"current":873}
+{"_e":"metro:bundling:progress","_t":1786137734754,"id":"1","progress":0.7307228822241014,"total":1047,"current":895}
+{"_e":"metro:bundling:progress","_t":1786137734854,"id":"1","progress":0.7307228822241014,"total":1084,"current":924}
+{"_e":"metro:bundling:progress","_t":1786137734955,"id":"1","progress":0.745156775099769,"total":1104,"current":953}
+{"_e":"metro:bundling:progress","_t":1786137735057,"id":"1","progress":0.7520383132997163,"total":1122,"current":973}
+{"_e":"metro:bundling:progress","_t":1786137735158,"id":"1","progress":0.7793700634594113,"total":1135,"current":1002}
+{"_e":"metro:bundling:progress","_t":1786137735259,"id":"1","progress":0.7847984375189695,"total":1148,"current":1017}
+{"_e":"metro:bundling:progress","_t":1786137735361,"id":"1","progress":0.7847984375189695,"total":1232,"current":1029}
+{"_e":"metro:bundling:progress","_t":1786137735462,"id":"1","progress":0.7847984375189695,"total":1233,"current":1034}
+{"_e":"metro:bundling:progress","_t":1786137735564,"id":"1","progress":0.7847984375189695,"total":1243,"current":1049}
+{"_e":"metro:bundling:progress","_t":1786137735669,"id":"1","progress":0.7847984375189695,"total":1249,"current":1070}
+{"_e":"metro:bundling:progress","_t":1786137735769,"id":"1","progress":0.7847984375189695,"total":1272,"current":1105}
+{"_e":"metro:bundling:progress","_t":1786137735871,"id":"1","progress":0.7847984375189695,"total":1325,"current":1129}
+{"_e":"metro:bundling:progress","_t":1786137735977,"id":"1","progress":0.7847984375189695,"total":1337,"current":1149}
+{"_e":"metro:bundling:progress","_t":1786137736077,"id":"1","progress":0.7847984375189695,"total":1343,"current":1182}
+{"_e":"metro:bundling:progress","_t":1786137736177,"id":"1","progress":0.8118622212428189,"total":1354,"current":1220}
+{"_e":"metro:bundling:progress","_t":1786137736278,"id":"1","progress":0.8384866186221308,"total":1364,"current":1249}
+{"_e":"metro:bundling:progress","_t":1786137736387,"id":"1","progress":0.8384866186221308,"total":1419,"current":1262}
+{"_e":"metro:bundling:progress","_t":1786137736487,"id":"1","progress":0.8384866186221308,"total":1436,"current":1284}
+{"_e":"metro:bundling:progress","_t":1786137736587,"id":"1","progress":0.8384866186221308,"total":1440,"current":1312}
+{"_e":"metro:bundling:progress","_t":1786137736687,"id":"1","progress":0.8515817176870345,"total":1451,"current":1339}
+{"_e":"metro:bundling:progress","_t":1786137736794,"id":"1","progress":0.8724791691824659,"total":1456,"current":1360}
+{"_e":"metro:bundling:progress","_t":1786137736939,"id":"1","progress":0.8869511165321824,"total":1460,"current":1375}
+{"_e":"metro:bundling:progress","_t":1786137737042,"id":"1","progress":0.9028242612028095,"total":1465,"current":1392}
+{"_e":"metro:bundling:progress","_t":1786137737141,"id":"1","progress":0.9292855217686674,"total":1472,"current":1419}
+{"_e":"metro:bundling:progress","_t":1786137737247,"id":"1","progress":0.9493416724378706,"total":1481,"current":1443}
+{"_e":"metro:bundling:progress","_t":1786137737350,"id":"1","progress":0.958794761314335,"total":1489,"current":1458}
+{"_e":"metro:bundling:progress","_t":1786137737451,"id":"1","progress":0.9734583841474979,"total":1497,"current":1477}
+{"_e":"metro:bundling:progress","_t":1786137737551,"id":"1","progress":0.9734583841474979,"total":1525,"current":1492}
+{"_e":"metro:bundling:progress","_t":1786137737656,"id":"1","progress":0.9734583841474979,"total":1530,"current":1507}
+{"_e":"metro:bundling:progress","_t":1786137737815,"id":"1","progress":0.9734583841474979,"total":1530,"current":1509}
+{"_e":"metro:bundling:progress","_t":1786137737917,"id":"1","progress":0.9734583841474979,"total":1541,"current":1511}
+{"_e":"metro:bundling:progress","_t":1786137738018,"id":"1","progress":0.9832315129265214,"total":1544,"current":1531}
+{"_e":"metro:bundling:progress","_t":1786137738127,"id":"1","progress":0.9884431146910887,"total":1553,"current":1544}
+{"_e":"metro:bundling:progress","_t":1786137738238,"id":"1","progress":0.998713412806077,"total":1554,"current":1553}
+{"_e":"metro:bundling:progress","_t":1786137738399,"id":"1","progress":0.999,"total":1558,"current":1558}
+{"_e":"metro:bundling:progress","_t":1786137738501,"id":"1","progress":0.999,"total":1567,"current":1563}
+{"_e":"metro:bundling:progress","_t":1786137738614,"id":"1","progress":0.999,"total":1569,"current":1569}
+{"_e":"metro:bundling:done","_t":1786137738884,"id":"1","total":1569,"ms":11349.9264}
+{"_e":"metro:client_log","_t":1786137743138,"level":"warn","data":["Route \"./home.tsx\" is missing the required default export. Ensure a React component is exported as default."]}
+{"_e":"metro:client_log","_t":1786137743491,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1786137743572,"level":"error","data":["[Error: Gradient package was not found. Make sure \"react-native-linear-gradient\" or \"expo-linear-gradient\" is installed]","\n\n\u001b[1mCode: home.tsx\u001b[22m\n\u001b[0m \u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { useState\u001b[33m,\u001b[39m useEffect } \u001b[36mfrom\u001b[39m \u001b[32m\"react\"\u001b[39m\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 2 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mLineChart\u001b[39m } \u001b[36mfrom\u001b[39m \u001b[32m\"react-native-gifted-charts\"\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m   |\u001b[39m \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 3 |\u001b[39m \u001b[36mimport\u001b[39m { router } \u001b[36mfrom\u001b[39m \u001b[32m\"expo-router\"\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 4 |\u001b[39m \u001b[36mimport\u001b[39m {\n \u001b[90m 5 |\u001b[39m   \u001b[33mActivityIndicator\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[90m  <global> (src\\app\\home.tsx:2)\u001b[39m","\n\n\u001b[1mCode: ExpoRoot.js\u001b[22m\n\u001b[0m \u001b[90m 83 |\u001b[39m                     initialMetrics\u001b[33m:\u001b[39m \u001b[33mINITIAL_METRICS\u001b[39m\u001b[33m,\u001b[39m children\u001b[33m:\u001b[39m children }) }) }))\u001b[33m;\u001b[39m\n \u001b[90m 84 |\u001b[39m     }\u001b[33m,\u001b[39m [\u001b[33mParentWrapper\u001b[39m])\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 85 |\u001b[39m     \u001b[36mreturn\u001b[39m (\u001b[35m0\u001b[39m\u001b[33m,\u001b[39m jsx_runtime_1\u001b[33m.\u001b[39mjsx)(\u001b[33mContextNavigator\u001b[39m\u001b[33m,\u001b[39m { \u001b[33m...\u001b[39mprops\u001b[33m,\u001b[39m wrapper\u001b[33m:\u001b[39m wrapper })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 86 |\u001b[39m }\n \u001b[90m 87 |\u001b[39m \u001b[36mconst\u001b[39m initialUrl \u001b[33m=\u001b[39m react_native_1\u001b[33m.\u001b[39m\u001b[33mPlatform\u001b[39m\u001b[33m.\u001b[39m\u001b[33mOS\u001b[39m \u001b[33m===\u001b[39m \u001b[32m'web'\u001b[39m \u001b[33m&&\u001b[39m \u001b[36mtypeof\u001b[39m window \u001b[33m!==\u001b[39m \u001b[32m'undefined'\u001b[39m\n \u001b[90m 88 |\u001b[39m     \u001b[33m?\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mURL\u001b[39m(window\u001b[33m.\u001b[39mlocation\u001b[33m.\u001b[39mhref)\u001b[0m\n\u001b[1mCall Stack\u001b[22m\n\u001b[2m\u001b[90m  ExpoRoot (node_modules\\expo-router\\build\\ExpoRoot.js:85:33)\u001b[39m\u001b[22m\n\u001b[2m\u001b[90m  App (node_modules\\expo-router\\build\\qualified-entry.js:20:91)\u001b[39m\u001b[22m\n\u001b[2m\u001b[90m  WithDevTools (node_modules\\expo\\src\\launch\\withDevTools.tsx:21:12)\u001b[39m\u001b[22m"]}
