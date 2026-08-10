@@ -17,7 +17,7 @@ from database import InterviewIQDB
 
 app = FastAPI(title="InterviewIQ API", version="1.0.0")
 OLLAMA_URL = "http://localhost:11434/api/chat"
-OLLAMA_MODEL = "gemma3"
+OLLAMA_MODEL = "gemma3:latest"
 
 app.add_middleware(
     CORSMiddleware,
@@ -121,6 +121,10 @@ class OverallInterviewFeedback(BaseModel):
     overall_feedback: str
     overall_strengths: list[str]
     overall_improvements: list[str]
+
+gemma_client = httpx.AsyncClient(
+    timeout=180.0
+)
 
 def normalize_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -418,17 +422,18 @@ async def _call_gemma_once(
         "messages": messages,
         "stream": False,
         "format": response_schema,
+        "keep_alive":"30m",
         "options": {
             "temperature": 0.0,
+            "num_predict": 512,
         },
     }
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        response = await client.post(
-            OLLAMA_URL,
-            json=payload,
-        )
-        response.raise_for_status()
+    response = await gemma_client.post(
+    OLLAMA_URL,
+    json=payload,
+)
+    response.raise_for_status()
 
     ollama_response = response.json()
 

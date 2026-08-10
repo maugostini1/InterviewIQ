@@ -13,7 +13,6 @@ import {
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
-
 import {
   cancelMockInterview,
   completeMockInterview,
@@ -326,6 +325,37 @@ const handleEndInterview = () => {
   );
 };
 
+  /*Changes the status of interview to cancel to avoid infinite question loops*/
+  const cancelAndNavigate = async (
+    destination: "/home" | "/profile"
+  ) => {
+    try {
+      // Close the dropdown immediately
+      setMenuOpen(false);
+
+      // Cancel the current interview
+      if (sessionId !== null) {
+        await cancelMockInterview(sessionId);
+
+        console.log(
+          `Interview ${sessionId} cancelled.`
+        );
+      }
+
+      // Navigate after cancellation succeeds
+      router.replace(destination);
+
+    } catch (error) {
+      console.error(
+        "Unable to cancel interview:",
+        error
+      );
+
+      // Still navigate instead of trapping the user
+      router.replace(destination);
+    }
+  };
+
   /*Handles Logout*/
   const handleLogout = async () => {
     try {
@@ -380,9 +410,7 @@ const handleEndInterview = () => {
           <Pressable
             style={styles.dropdownItem}
             onPress={() => {
-              setMenuOpen(false);
-
-              router.push("/home");
+              void cancelAndNavigate('/home')
             }}
           >
             <Text style={styles.dropdownText}>
@@ -393,39 +421,11 @@ const handleEndInterview = () => {
           <Pressable
             style={styles.dropdownItem}
             onPress={() => {
-              setMenuOpen(false);
-
-              router.push("/profile");
+              void cancelAndNavigate('/profile')
             }}
           >
             <Text style={styles.dropdownText}>
               Profile
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={() => {
-              setMenuOpen(false);
-
-              router.push("/feedback");
-            }}
-          >
-            <Text style={styles.dropdownText}>
-              Feedback
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.dropdownItem}
-            onPress={() => {
-              setMenuOpen(false);
-
-              handleEndInterview();
-            }}
-          >
-            <Text style={styles.dropdownDangerText}>
-              End Interview
             </Text>
           </Pressable>
 
