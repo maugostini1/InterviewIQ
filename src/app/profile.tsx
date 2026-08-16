@@ -23,8 +23,6 @@ type StoredUser = {
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<StoredUser | null>(null);
-  const [resume, setResume] =
-    useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -45,22 +43,6 @@ export default function ProfileScreen() {
 
     void loadUser();
   }, []);
-
-  const selectResume = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ],
-      copyToCacheDirectory: true,
-      multiple: false,
-    });
-
-    if (!result.canceled) {
-      setResume(result.assets[0]);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -171,20 +153,6 @@ return (
         isLast
         />
     </View>
-
-    <View style={styles.resumeCard}>
-        <Text style={styles.resumeTitle}>Resume</Text>
-
-        <Text style={styles.resumeName}>
-        {resume?.name || "No resume selected"}
-        </Text>
-
-        <Pressable onPress={selectResume}>
-        <Text style={styles.uploadLink}>
-            {resume ? "Replace resume" : "Upload resume"}
-        </Text>
-        </Pressable>
-    </View>
     </ScrollView>
 </SafeAreaView>
 );
@@ -287,26 +255,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#27245C",
-  },
-
-  resumeCard: {
-    marginTop: 22,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FFFFFF",
-  },
-
-  resumeTitle: {
-    marginBottom: 8,
-    fontSize: 21,
-    fontWeight: "800",
-    color: "#27245C",
-  },
-
-  resumeName: {
-    marginBottom: 12,
-    fontSize: 16,
-    color: "#333344",
   },
 
   uploadLink: {

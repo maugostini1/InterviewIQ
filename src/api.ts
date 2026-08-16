@@ -1,12 +1,6 @@
 export const API_BASE_URL = "http://10.0.2.2:8000";
 import * as SecureStore from "expo-secure-store";
 
-export type ResumeUploadResponse = {
-  message: string;
-  filename: string;
-  stored_filename?: string;
-};
-
 export type InterviewAnswerResult = {
   question_id: number;
   question_order: number;
@@ -223,56 +217,6 @@ export async function getCurrentUser() {
 
   return data;
 }
-
-export async function uploadResume(
-  file: {
-    uri: string;
-    name: string;
-    mimeType?: string | null;
-  },
-  accessToken: string
-): Promise<ResumeUploadResponse> {
-  const formData = new FormData();
-
-  formData.append(
-    "resume",
-    {
-      uri: file.uri,
-      name: file.name,
-      type: file.mimeType ?? "application/octet-stream",
-    } as any
-  );
-
-  const response = await fetch(`${API_BASE_URL}/resume/upload`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: formData,
-  });
-
-  const responseText = await response.text();
-
-  let responseData: any;
-
-  try {
-    responseData = responseText ? JSON.parse(responseText) : {};
-  } catch {
-    responseData = {
-      detail: responseText,
-    };
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      responseData.detail ||
-        `Resume upload failed with status ${response.status}`
-    );
-  }
-
-  return responseData;
-}
-
 
 
 async function getAccessToken(): Promise<string> {

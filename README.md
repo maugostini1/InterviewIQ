@@ -10,11 +10,7 @@
 
 + Users shall be able to create an account
 + Users shall be able to log in and out.
-- Users shall be able to update information.
-+ Users shall be able to upload a resume in PDF format.
-+ Users shall be able to replace or update their uploaded resume.
-- Users shall receive an error message when uploading an incorrect file type.
-- Users shall be able to select the job type interview format.
+- Users shall be able to update target field.
 + Users shall be able to start a mock interview.
 + Users shall be able to stop the mock interview.
 + Users shall be able to type responses to AI-Generated Questions.

@@ -22,7 +22,6 @@ export default function SignupScreen() {
   const [careerField, setCareerField] = useState("");
   const [targetJob, setTargetJob] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [resume, setResume] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   const handleCreateAccount = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
@@ -61,25 +60,6 @@ export default function SignupScreen() {
       setIsSubmitting(false);
     }
   };
-
-  const uploadResume = async () => {
-  try {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ],
-      copyToCacheDirectory: true,
-    });
-
-    if (result.canceled) return;
-
-    setResume(result.assets[0]);
-  } catch (err) {
-    Alert.alert("Unable to select resume.");
-  }
-};
 
   return (
     <ScrollView style={styles.page} keyboardShouldPersistTaps="handled">
@@ -137,14 +117,6 @@ export default function SignupScreen() {
           placeholder="Software Engineer"
           onSubmitEditing={handleCreateAccount}
         />
-
-        <Pressable onPress={uploadResume}>
-            <Text style={styles.uploadLink}>
-                {resume
-                    ? `Resume: ${resume.name}`
-                    : "Upload Resume"}
-            </Text>
-        </Pressable>
 
         <Pressable
           style={[styles.secondaryButton, isSubmitting && styles.disabledButton]}
