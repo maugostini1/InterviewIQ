@@ -4,7 +4,7 @@ export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        headerShown: false, //removes default header to allow new banner for header.
       }}
     />
   );

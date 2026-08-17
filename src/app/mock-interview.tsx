@@ -13,6 +13,8 @@ import {
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
+
+// APIs integrated from api.ts for execution.
 import {
   cancelMockInterview,
   completeMockInterview,
@@ -22,36 +24,33 @@ import {
   type StarFeedback,
 } from "../api";
 
+//constants used to only ask the allotted questions to Gemma 3 and allow for 2.5 mins for answering. 
 const TOTAL_QUESTIONS = 5;
 const QUESTION_TIME_SECONDS = 150;
 
 export default function InterviewScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sessionId, setSessionId] =
-    useState<number | null>(null);
-  const [questions, setQuestions] =
-    useState<InterviewQuestion[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] =
-    useState(0);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState("");
-  const [feedbackResults, setFeedbackResults] =
-    useState<StarFeedback[]>([]);
-  const [secondsRemaining, setSecondsRemaining] =
-    useState(QUESTION_TIME_SECONDS);
+  const [feedbackResults, setFeedbackResults] = useState<StarFeedback[]>([]);
+  const [secondsRemaining, setSecondsRemaining] = useState(QUESTION_TIME_SECONDS);
   const [isStarting, setIsStarting] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const submissionInProgress = useRef(false);
   const answerRef = useRef("");
-
-  const currentQuestion =
-    questions[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
 
   useEffect(() => {
     answerRef.current = answer;
   }, [answer]);
 
-  /*Begins Interview*/
+  /*Begins Interview
+  * Interview section begins with loading current user information and locating the target job.
+  * Using the target job, the frontend supplies backend with target job information to prompt Gemma
+  * to ask the tailored questions to the user.
+  */
   useEffect(() => {
     const beginInterview = async () => {
       try {
@@ -78,9 +77,8 @@ export default function InterviewScreen() {
           "Starting interview for:",
           targetJob
         );
-
-        const result =
-          await startMockInterview(targetJob);
+        
+        const result = await startMockInterview(targetJob);
 
         console.log(
           "Interview session:",
@@ -142,6 +140,7 @@ export default function InterviewScreen() {
       return;
     }
 
+    // timer begins and resets when answers are submitted or time runs out.
     const timer = setInterval(() => {
       setSecondsRemaining((previousTime) => {
         if (previousTime <= 1) {
@@ -163,6 +162,7 @@ export default function InterviewScreen() {
     currentQuestion?.question_id,
   ]);
 
+  // Time formating into mins and seconds rather than 150 seconds.
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -184,8 +184,7 @@ export default function InterviewScreen() {
       return;
     }
 
-    const submittedAnswer =
-      answerRef.current.trim();
+    const submittedAnswer = answerRef.current.trim();
 
     if (!timeExpired && !submittedAnswer) {
       Alert.alert(
@@ -200,6 +199,7 @@ export default function InterviewScreen() {
       submissionInProgress.current = true;
       setIsSubmitting(true);
 
+      // alerts user that time expired with no answer to the question.
       const answerToSubmit =
         submittedAnswer ||
         "No answer was provided before time expired.";
@@ -229,6 +229,8 @@ export default function InterviewScreen() {
 
       setFeedbackResults(updatedFeedback);
 
+      // checks questions until question has reached last the question.
+      // strictly has to be exactly 5 questions.
       const finalQuestion =
         currentQuestionIndex ===
         TOTAL_QUESTIONS - 1;
@@ -241,6 +243,7 @@ export default function InterviewScreen() {
 
         await completeMockInterview(sessionId);
 
+        //routes to feedback page for review.
         router.replace({
           pathname: "/feedback",
           params: {
@@ -287,7 +290,10 @@ export default function InterviewScreen() {
     }
   };
 
-  /*Ends Interview*/
+  /*Ends Interview
+  * This allows the user to explicit exit the interview.
+  * End interview button was supplied to avoid Gemma model infinite loop in background.
+  */
 const handleEndInterview = () => {
   Alert.alert(
     "End Interview?",
@@ -356,7 +362,10 @@ const handleEndInterview = () => {
     }
   };
 
-  /*Handles Logout*/
+  /*Handles Logout
+  * Log out handled across all functions. 
+  * The functionality is handled in the hamburger icon.
+  */
   const handleLogout = async () => {
     try {
       await SecureStore.deleteItemAsync(
@@ -574,6 +583,8 @@ const handleEndInterview = () => {
   );
 }
 
+// Another notable mention about AI assistance helping with formatting the interview page.
+// This helps to ensure that the page does not have colliding features.
 const styles = StyleSheet.create({
   page: {
     flex: 1,

@@ -10,7 +10,7 @@
 
 + Users shall be able to create an account
 + Users shall be able to log in and out.
-- Users shall be able to update target field.
++ Users shall be able to update target field.
 + Users shall be able to start a mock interview.
 + Users shall be able to stop the mock interview.
 + Users shall be able to type responses to AI-Generated Questions.

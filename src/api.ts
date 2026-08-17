@@ -1,6 +1,9 @@
 export const API_BASE_URL = "http://10.0.2.2:8000";
 import * as SecureStore from "expo-secure-store";
 
+// Each type function is built to mimic the database collection of information.
+// The types collect information that is supplied from the frontend and communicated to the backend
+// where the functionality is produced.
 export type InterviewAnswerResult = {
   question_id: number;
   question_order: number;
@@ -92,6 +95,7 @@ export type InterviewHistory = {
   interviews: InterviewHistoryItem[];
 };
 
+//Handles signup functionality to store information in the backend for retrieval.
 export async function signupAccount(account: {
   first_name: string;
   last_name: string;
@@ -110,6 +114,7 @@ export async function signupAccount(account: {
 
   let response: Response;
 
+  // Try and catch blocks were assisted by AI to produce more identifiable issues.
   try {
     response = await fetch(url, {
       method: "POST",
@@ -154,6 +159,8 @@ export async function signupAccount(account: {
   return responseData;
 }
 
+// Handles login requests to backend. POST functions are pulled from backend via Uvicorn
+// in order to login and welcome the user.
 export async function loginAccount(
   credentials: LoginRequest
 ): Promise<LoginResponse> {
@@ -195,6 +202,8 @@ export async function loginAccount(
   return responseData;
 }
 
+// Function obtains currentUser that is signed in using the SecureStore library.
+// if statements ensure that user is authenicated against the database or if the network cannot load the user.
 export async function getCurrentUser() {
   const token = await SecureStore.getItemAsync("access_token");
 
@@ -218,7 +227,8 @@ export async function getCurrentUser() {
   return data;
 }
 
-
+// Tokens are used to supply requests to SecureStore. 
+// It helps with any further requests needed by FastAPI access points.
 async function getAccessToken(): Promise<string> {
   const token = await SecureStore.getItemAsync("access_token");
 
@@ -229,6 +239,8 @@ async function getAccessToken(): Promise<string> {
   return token;
 }
 
+// AI Assistance: JSON parse issues within program created issues. 
+// AI provided parse function to help ensure that program avoids further JSON parse issues.
 async function parseApiResponse(response: Response) {
   const responseText = await response.text();
 
@@ -256,6 +268,35 @@ async function parseApiResponse(response: Response) {
   return data;
 }
 
+// Allows functionality to update Target job in React Frontend environment.
+export async function updateTargetJob(
+  targetJob: string
+): Promise<{
+  message: string;
+  target_job: string;
+}> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `${API_BASE_URL}/profile/target-job`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        target_job: targetJob,
+      }),
+    }
+  );
+
+  return parseApiResponse(response);
+}
+
+// Utilizes access token to start mock interview based on current user.
+// Bridges the functionality between backend and frontend.
 export async function startMockInterview(
   targetJob: string
 ): Promise<StartInterviewResult> {
@@ -279,6 +320,8 @@ export async function startMockInterview(
   return parseApiResponse(response);
 }
 
+// Same functionality as start mock interview.
+// functionality helps with submitting the interview based on user access token.
 export async function submitMockInterviewAnswer(
   sessionId: number,
   questionId: number,
@@ -306,6 +349,7 @@ export async function submitMockInterviewAnswer(
   return await parseApiResponse(response);
 }
 
+// Request for completing the mock interview.
 export async function completeMockInterview(
   sessionId: number
 ) {
@@ -325,6 +369,7 @@ export async function completeMockInterview(
   return parseApiResponse(response);
 }
 
+// Obtains current interview session.
 export async function getInterviewSession(
   sessionId: number
 ): Promise<CompletedInterview> {
@@ -343,6 +388,7 @@ export async function getInterviewSession(
   return parseApiResponse(response);
 }
 
+// Submits for a cancellation for mock interview.
 export async function cancelMockInterview(
   sessionId: number
 ) {
@@ -362,6 +408,8 @@ export async function cancelMockInterview(
   return parseApiResponse(response);
 }
 
+// Used to supply history functionlity between frontend and backend.
+// All functionality is held on the home page.
 export async function getInterviewHistory():
   Promise<InterviewHistory> {
 

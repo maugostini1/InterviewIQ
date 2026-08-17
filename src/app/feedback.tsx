@@ -1,3 +1,8 @@
+/* AI Assistance Disclosure:
+ * OpenAI ChatGPT was used to assist with code debugging and refinement.
+ * All suggestions were reviewed, tested and modified by myself.
+ * Citation in this document will include the AI Assistance comment for clarity of assistance.
+*/
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,24 +15,31 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
+// imported api from api.ts. Allows functionality within frontend by relaying events to backend to FastAPI.
 import {
   getInterviewSession,
   type CompletedInterview,
   type InterviewAnswerResult,
 } from "../api";
 
+// Breaks apart strong STAR answer versus Answers that could be improved.
 const STRONG_STAR_THRESHOLD = 80;
 
+//
 export default function FeedbackScreen() {
+
+  //uses expo router to load sessionID from Mock Interview.
   const params = useLocalSearchParams<{
     sessionId?: string;
   }>();
 
-  const [session, setSession] =
-    useState<CompletedInterview | null>(null);
+  //stores the session.
+  const [session, setSession] = useState<CompletedInterview | null>(null);
 
+  //controls loading indicator while interview feedback is obtained from backend.
   const [isLoading, setIsLoading] = useState(true);
 
+  //effect is used to load the completed interview based on the current sessionID. SessionID is not retrieved outside of current session.
   useEffect(() => {
     const loadInterviewFeedback = async () => {
       if (!params.sessionId) {
@@ -35,6 +47,7 @@ export default function FeedbackScreen() {
         return;
       }
 
+      // exception handling for interview feedback loading failure.
       try {
         setIsLoading(true);
 
@@ -67,6 +80,7 @@ export default function FeedbackScreen() {
     void loadInterviewFeedback();
   }, [params.sessionId]);
 
+  //Separate responses based on scores where answer either need improvement or are strong responses.
   const strongAnswers = useMemo(() => {
     if (!session) {
       return [];
@@ -91,6 +105,7 @@ export default function FeedbackScreen() {
     );
   }, [session]);
 
+  //displays loading screen for while transitioning from interview page.
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -102,6 +117,7 @@ export default function FeedbackScreen() {
     );
   }
 
+  // error handling if the feedback fails to load. Re-routes to home page.
   if (!session) {
     return (
       <View style={styles.centered}>
@@ -224,6 +240,7 @@ export default function FeedbackScreen() {
   );
 }
 
+{/*Displays strong answer section for feedback page*/}
 function StrongAnswerCard({
   answer,
 }: {
@@ -276,7 +293,7 @@ function StrongAnswerCard({
     </View>
   );
 }
-
+{/*Displays improvement section for feedback page*/}
 function ImprovementAnswerCard({
   answer,
 }: {
@@ -342,7 +359,7 @@ function ImprovementAnswerCard({
     </View>
   );
 }
-
+{/*Displays results of STAR method scored by Gemma 3 into feedback sections*/}
 function StarBreakdown({
   answer,
 }: {
@@ -405,6 +422,7 @@ function ScoreRow({
   );
 }
 
+// AI assistance need to refine stylings when placing items on frontend. This helped to create clean layout of feedback page.
 const styles = StyleSheet.create({
   page: {
     flex: 1,

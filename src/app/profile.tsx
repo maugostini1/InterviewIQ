@@ -1,16 +1,18 @@
-import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
+import { updateTargetJob } from "../api"; 
 
 type StoredUser = {
   user_id: number;
@@ -25,6 +27,9 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+  const [targetJob, setTargetJob] = useState("");
+  const [isSavingTarget, setIsSavingTarget] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -32,7 +37,10 @@ export default function ProfileScreen() {
         const storedUser = await SecureStore.getItemAsync("user");
 
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+
+          setUser(parsedUser);
+          setTargetJob(parsedUser.target_job ?? "");
         }
       } catch (error) {
         console.error("Unable to load stored user:", error);
@@ -60,6 +68,59 @@ export default function ProfileScreen() {
     );
   }
 
+  const handleSaveTargetJob = async () => {
+    const cleanedTargetJob = targetJob.trim();
+
+    if (!cleanedTargetJob) {
+      Alert.alert(
+        "Target Job Required",
+        "Enter the job you want to interview for."
+      );
+      return;
+    }
+
+    try {
+      setIsSavingTarget(true);
+
+      const result = await updateTargetJob(
+        cleanedTargetJob
+      );
+
+      const updatedUser = {
+        ...user,
+        target_job: result.target_job,
+      };
+
+      setUser(updatedUser);
+
+      await SecureStore.setItemAsync(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      setTargetJob(result.target_job);
+      setIsEditingTarget(false);
+
+      Alert.alert(
+        "Profile Updated",
+        "Your target job has been updated."
+      );
+    } catch (error) {
+      console.error(
+        "Unable to update target job:",
+        error
+      );
+
+      Alert.alert(
+        "Update Failed",
+        error instanceof Error
+          ? error.message
+          : "Unable to update target job."
+      );
+    } finally {
+      setIsSavingTarget(false);
+    }
+  };
   const handleLogout = async () => {
     try {
       await SecureStore.deleteItemAsync("access_token");
@@ -147,11 +208,80 @@ return (
         value={user.career_field || "Not provided"}
         />
 
-        <ProfileRow
-        label="Target Job"
-        value={user.target_job || "Not provided"}
-        isLast
-        />
+    <View style={[styles.row, styles.lastRow]}>
+      <Text style={styles.label}>
+        Target Job
+      </Text>
+
+      {isEditingTarget ? (
+        <>
+          <TextInput
+            style={styles.targetInput}
+            value={targetJob}
+            onChangeText={setTargetJob}
+            placeholder="Enter target job"
+            placeholderTextColor="#8A8DA1"
+            autoCapitalize="words"
+            editable={!isSavingTarget}
+          />
+
+          <View style={styles.editActions}>
+            <Pressable
+              style={styles.saveButton}
+              onPress={handleSaveTargetJob}
+              disabled={isSavingTarget}
+            >
+              {isSavingTarget ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  Save
+                </Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => {
+                setTargetJob(
+                  user.target_job ?? ""
+                );
+
+                setIsEditingTarget(false);
+              }}
+              disabled={isSavingTarget}
+            >
+              <Text style={styles.cancelButtonText}>
+                Cancel
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      ) : (
+        <View style={styles.targetDisplay}>
+          <Text style={styles.value}>
+            {user.target_job || "Not provided"}
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              setTargetJob(
+                user.target_job ?? ""
+              );
+
+              setIsEditingTarget(true);
+            }}
+          >
+            <Text style={styles.editLink}>
+              Edit
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
     </View>
     </ScrollView>
 </SafeAreaView>
@@ -316,4 +446,65 @@ const styles = StyleSheet.create({
     zIndex: 90,
     backgroundColor: "transparent",
   },
+
+  targetDisplay: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
+editLink: {
+  fontSize: 15,
+  fontWeight: "700",
+  color: "#6C63FF",
+},
+
+targetInput: {
+  height: 50,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: "#DFE2EA",
+  borderRadius: 12,
+  backgroundColor: "#F7F8FC",
+  fontSize: 16,
+  color: "#27245C",
+},
+
+editActions: {
+  flexDirection: "row",
+  marginTop: 12,
+  gap: 10,
+},
+
+saveButton: {
+  minWidth: 90,
+  minHeight: 44,
+  justifyContent: "center",
+  alignItems: "center",
+  borderRadius: 10,
+  backgroundColor: "#6C63FF",
+},
+
+saveButtonText: {
+  fontSize: 15,
+  fontWeight: "700",
+  color: "#FFFFFF",
+},
+
+cancelButton: {
+  minWidth: 90,
+  minHeight: 44,
+  justifyContent: "center",
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#DFE2EA",
+  borderRadius: 10,
+  backgroundColor: "#FFFFFF",
+},
+
+cancelButtonText: {
+  fontSize: 15,
+  fontWeight: "700",
+  color: "#27245C",
+},
 });
