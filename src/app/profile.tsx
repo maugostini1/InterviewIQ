@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const [targetJob, setTargetJob] = useState("");
   const [isSavingTarget, setIsSavingTarget] = useState(false);
 
+  // loads current user from login.
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -68,9 +69,11 @@ export default function ProfileScreen() {
     );
   }
 
+  // Allows for target job edits to be saved.
   const handleSaveTargetJob = async () => {
     const cleanedTargetJob = targetJob.trim();
 
+    //checks to see if target job field has text.
     if (!cleanedTargetJob) {
       Alert.alert(
         "Target Job Required",
@@ -121,6 +124,7 @@ export default function ProfileScreen() {
       setIsSavingTarget(false);
     }
   };
+
   const handleLogout = async () => {
     try {
       await SecureStore.deleteItemAsync("access_token");
@@ -191,6 +195,7 @@ return (
     </View>
     )}
 
+    {/* Card view for each item in the profile*/}
     <ScrollView
     style={styles.scrollView}
     contentContainerStyle={styles.container}
@@ -213,6 +218,7 @@ return (
         Target Job
       </Text>
 
+      {/*Allows for editing target job to adjust Gemma's interview questions*/}
       {isEditingTarget ? (
         <>
           <TextInput
@@ -288,6 +294,7 @@ return (
 );
 }
 
+{/*Component generate by AI to help with checking dividers between fields. Avoid using divider for last field in the list*/}
 function ProfileRow({
   label,
   value,
@@ -305,6 +312,7 @@ function ProfileRow({
   );
 }
 
+// AI used to help with Styling Elements.
 const styles = StyleSheet.create({
   page: {
     flex: 1,

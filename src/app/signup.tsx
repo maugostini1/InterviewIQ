@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import * as DocumentPicker from "expo-document-picker";
 import { signupAccount } from "../api";
 
 export default function SignupScreen() {
@@ -23,6 +22,9 @@ export default function SignupScreen() {
   const [targetJob, setTargetJob] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Creates account. User must enter information into all fields on signup page.
+  // Password check has to be at least 8 characters. For simplicity, it can be simple passwords.
+  // Information is sent to backend to be secured in database for login.
   const handleCreateAccount = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
       Alert.alert(
@@ -134,6 +136,7 @@ export default function SignupScreen() {
   );
 }
 
+//Styling elements were assisted by AI.
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#F7F8FC" },
   container: { padding: 24 },

@@ -7,11 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// pulls from APIs to supply to charts and average score for interviews.
 import {
   getInterviewHistory,
   type InterviewHistory,
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const [history, setHistory] = useState<InterviewHistory | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  // Loads the user after login function.
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -47,6 +49,7 @@ export default function HomeScreen() {
     loadUser();
   }, []);
 
+  // loads the interview history from the backend.
   useEffect(() => {
     const loadInterviewHistory = async () => {
       try {
@@ -69,6 +72,7 @@ export default function HomeScreen() {
     void loadInterviewHistory();
   }, []);
 
+  // handles log out button from the hamburger dropdown.
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync("access_token");
     await SecureStore.deleteItemAsync("user");
@@ -76,6 +80,7 @@ export default function HomeScreen() {
     router.replace("/");
   };  
 
+  // maps the data from interview and index.
   const scoreChartData =
   history?.interviews.map(
     (interview, index) => ({
@@ -193,7 +198,8 @@ export default function HomeScreen() {
         </Text>
       </View>
     </View>
-
+    
+    {/*Chart tile for each interview completed. Will be blank with a prompt to complete first interview.*/}
     <View style={styles.chartCard}>
         <Text style={styles.chartTitle}>
           Interview Performance
@@ -256,6 +262,7 @@ export default function HomeScreen() {
 );
 }
 
+// AI assistance used to generate UI style elements.
 const styles = StyleSheet.create({
   page: {
     flex: 1,

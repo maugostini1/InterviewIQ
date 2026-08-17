@@ -510,6 +510,12 @@ async def call_gemma(
 
     for attempt in range(2):
         try:
+            current_num_predict = (
+                num_predict
+                if attempt == 0
+                else min(num_predict * 2, 2048)
+            )
+
             return await _call_gemma_once(
                 messages,
                 response_schema,
@@ -1166,7 +1172,7 @@ async def submit_interview_answer(
                         },
                     ],
                 response_schema=feedback_schema,
-                num_predict=400,
+                num_predict=1000,
     )
 
     scores = evaluation["scores"]
@@ -1356,8 +1362,8 @@ def get_interview_session(
         ).fetchall()
 
     questions = []
-
-    # loop presents each item in the dictionary for strengths and improvements.
+    # loops allows for information to be pulled sequential and displayed on frontend
+    # on the feedback page.
     for row in rows:
         item = dict(row)
 
@@ -1376,6 +1382,18 @@ def get_interview_session(
         questions.append(item)
 
     interview_data = dict(interview)
+
+    interview_data["overall_strengths"] = (
+        json.loads(interview_data["overall_strengths"])
+        if interview_data.get("overall_strengths")
+        else []
+    )
+
+    interview_data["overall_improvements"] = (
+        json.loads(interview_data["overall_improvements"])
+        if interview_data.get("overall_improvements")
+        else []
+    )
 
     return {
         "interview": interview_data,

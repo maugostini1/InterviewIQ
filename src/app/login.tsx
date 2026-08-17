@@ -17,6 +17,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Checks for login credentials for database. If either field is empty, it will alert the user.
+  // SecureStore stores the user's information to pull related information during application use.
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       Alert.alert("Missing information", "Enter your email and password.");
@@ -93,6 +95,7 @@ export default function LoginScreen() {
   );
 }
 
+// Styles were assisted by AI.
 const styles = StyleSheet.create({
   page: {
     flex: 1,

@@ -19,5 +19,5 @@
 + Users shall be able to track progress on the dashboard.
 
 ** To run backend: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-** To run Ollama: ollama run gemma3
+** To run Ollama: ollama run gemma3:latest
 ** To ensure expo run correct android emulator: npx expo run:android

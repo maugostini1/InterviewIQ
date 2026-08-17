@@ -5,9 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="03ba721e-2d29-4b15-86b3-0f8b55e25a99" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.expo/dev/logs/start.log" beforeDir="false" afterPath="$PROJECT_DIR$/.expo/dev/logs/start.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.expo/devices.json" beforeDir="false" afterPath="$PROJECT_DIR$/.expo/devices.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/home.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/home.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/login.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/profile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/profile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/signup.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/signup.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/backend/interviewiq.db" beforeDir="false" afterPath="$PROJECT_DIR$/src/backend/interviewiq.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/backend/main.py" afterDir="false" />
     </list>
@@ -41,9 +47,9 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "profile-page",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/micha/OneDrive/Documents/Capstone Project/InterviewIQ",
+    "last_opened_file_path": "C:/Projects/InterviewIQ",
     "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle"
   }
 }]]></component>
