@@ -1,32 +1,14 @@
 import sqlite3
 
-DATABASE = "interviewiq.db"
-
-conn = sqlite3.connect(DATABASE)
+conn = sqlite3.connect("interviewiq.db")
 cursor = conn.cursor()
 
-try:
-    cursor.execute("""
-        ALTER TABLE Interview
-        ADD COLUMN overall_feedback TEXT
-    """)
+cursor.execute("""
+ALTER TABLE Question
+ADD COLUMN question_order INTEGER
+""")
 
-    cursor.execute("""
-        ALTER TABLE Interview
-        ADD COLUMN overall_strengths TEXT
-    """)
+conn.commit()
+conn.close()
 
-    cursor.execute("""
-        ALTER TABLE Interview
-        ADD COLUMN overall_improvements TEXT
-    """)
-
-    conn.commit()
-
-    print("Interview table updated successfully!")
-
-except sqlite3.Error as error:
-    print("Database error:", error)
-
-finally:
-    conn.close()
+print("question_order added successfully")

@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS Question (
     question_id     INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id      INTEGER NOT NULL,
     question_text   TEXT NOT NULL,
-    question_type   TEXT,
+    question_type   TEXT NOT NULL DEFAULT 'behavioral',
     question_order  INTEGER NOT NULL DEFAULT 1,
     created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES Interview (session_id) ON DELETE CASCADE

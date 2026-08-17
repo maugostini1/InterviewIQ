@@ -1,3 +1,8 @@
+# AI Assistance Disclosure:
+# OpenAI ChatGPT was used to assist with code debugging and refinement.
+# All suggestions were reviewed, tested and modified by myself.
+# Citation in this document will include the AI Assistance comment for clarity of assistance.
+
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -70,6 +75,12 @@ class ProfileResponse(BaseModel):
     career_field: Optional[str] = None
     target_job: Optional[str] = None
 
+class UpdateTargetJobRequest(BaseModel):
+    target_job: str = Field(
+        min_length=1,
+        max_length=120
+    )
+
 # for Gemma3 Model. Utilized docs.ollama.com to help with building the model.
 class StartInterviewRequest(BaseModel):
     target_job: str = Field(min_length=1, max_length=120)
@@ -79,6 +90,7 @@ class InterviewQuestionResponse(BaseModel):
     question_id: int
     question_order: int
     question: str
+    question_type: str
 
 class StartInterviewResponse(BaseModel):
     session_id: int
@@ -124,6 +136,28 @@ class OverallInterviewFeedback(BaseModel):
 gemma_client = httpx.AsyncClient(
     timeout=180.0
 )
+
+#Assisted from chatgpt to help with LLM response time during interview session start up.
+@app.on_event("startup")
+async def preload_gemma():
+    try:
+        await gemma_client.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "messages": [],
+                "stream": False,
+                "keep_alive": "30m",
+            },
+        )
+
+        print("Gemma 3 preloaded.")
+
+    except Exception as error:
+        print(
+            "Unable to preload Gemma:",
+            error,
+        )
 
 def normalize_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
@@ -332,26 +366,75 @@ def get_profile(
         target_job=current_user.target_job,
     )
 
+# allows the profile page's target job field to be editable in order to change LLMs interview questions.
+@app.patch("/profile/target-job")
+def update_target_job(
+    request: UpdateTargetJobRequest,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    target_job = request.target_job.strip()
+
+    if not target_job:
+        raise HTTPException(
+            status_code=400,
+            detail="Target job cannot be empty.",
+        )
+
+    with InterviewIQDB("interviewiq.db") as db:
+        cursor = db.conn.cursor()
+
+        profile = db.get_profile_by_user(
+            current_user.user_id
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Profile not found.",
+            )
+
+        cursor.execute(
+            """
+            UPDATE Profile
+            SET target_job = ?
+            WHERE user_id = ?
+            """,
+            (
+                target_job,
+                current_user.user_id,
+            ),
+        )
+
+        db.conn.commit()
+
+    return {
+        "message": "Target job updated successfully.",
+        "target_job": target_job,
+    }
+
 async def _call_gemma_once(
     messages: list[dict[str, str]],
     response_schema: dict,
+    num_predict: int = 512,
 ) -> dict:
+
     payload = {
         "model": OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
         "format": response_schema,
-        "keep_alive":"30m",
+        "keep_alive": "30m",
         "options": {
             "temperature": 0.0,
-            "num_predict": 512,
+            "num_predict": num_predict,
         },
     }
 
     response = await gemma_client.post(
-    OLLAMA_URL,
-    json=payload,
-)
+        OLLAMA_URL,
+        json=payload,
+    )
+
     response.raise_for_status()
 
     ollama_response = response.json()
@@ -403,7 +486,9 @@ async def _call_gemma_once(
 async def call_gemma(
     messages: list[dict[str, str]],
     response_schema: dict,
+    num_predict: int = 512,
 ) -> dict:
+
     last_error = None
 
     for attempt in range(2):
@@ -411,24 +496,23 @@ async def call_gemma(
             return await _call_gemma_once(
                 messages,
                 response_schema,
+                num_predict,
             )
 
         except HTTPException as error:
             last_error = error
 
-            # Don't retry connection/timeout errors.
             if error.status_code in (503, 504):
                 raise
 
             if attempt == 0:
                 print(
-                    "Gemma response was invalid. "
-                    "Retrying once..."
+                    "Gemma response invalid. Retrying..."
                 )
 
     raise last_error or HTTPException(
         status_code=502,
-        detail="Gemma 3 failed to return valid JSON.",
+        detail="Gemma failed to return valid JSON.",
     )
 
 async def generate_overall_interview_feedback(
@@ -465,6 +549,7 @@ async def generate_overall_interview_feedback(
         interview_text += (
             f"\nQuestion {index}:\n"
             f"{item['question_text']}\n\n"
+            f"Question Type: {item['question_type']}\n\n"
             f"Candidate Answer:\n"
             f"{item['response']}\n\n"
             f"STAR Score: {item['total_score']}/100\n"
@@ -529,34 +614,98 @@ async def start_interview(
                     "minItems": 5,
                     "maxItems": 5,
                     "items": {
-                        "type": "string",
-                    },
-                },
+                        "type": "object",
+                        "properties": {
+                            "question": {
+                                "type": "string"
+                            },
+                            "question_type": {
+                                "type": "string",
+                                "enum": [
+                                    "scenario",
+                                    "behavioral",
+                                    "behavioral",
+                                    "communication",
+                                    "communication"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "question",
+                            "question_type"
+                        ]
+                    }
+                }
             },
-            "required": ["questions"],
+            "required": [
+                "questions"
+            ]
         }
 
         result = await call_gemma(
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "You are a professional behavioral interviewer. "
-                        "Generate exactly five distinct behavioral interview "
-                        "questions for the target job. Each question must encourage "
-                        "a STAR-method response. Return only the five questions. "
-                        "Do not include answers, explanations, or numbering."
+                    "content": ("""
+                        You are a professional interviewer.
+
+                        Generate exactly five distinct interview questions specifically
+                        tailored to the candidate's target job.
+
+                        Create a realistic mixture of question types appropriate for the role.
+
+                        Use these categories in order:
+
+                        1. ROLE-SPECIFIC / TECHNICAL KNOWLEDGE
+                        Ask a question that evaluates important knowledge, skills, tools,
+                        concepts, or responsibilities associated with the target job.
+
+                        2. PROBLEM SOLVING / SCENARIO
+                        Present a realistic situation or problem someone in the target job
+                        could encounter and ask how the candidate would approach it.
+
+                        3. BEHAVIORAL
+                        Ask about a relevant past experience that can be answered using the
+                        STAR method.
+
+                        4. COMMUNICATION / COLLABORATION
+                        Evaluate the candidate's ability to communicate, collaborate, explain
+                        ideas, handle disagreements, or work with stakeholders in the context
+                        of the target job.
+
+                        5. ROLE-SPECIFIC CHALLENGE
+                        Ask a challenging question based specifically on the responsibilities,
+                        decisions, or problems commonly associated with the target job.
+
+                        IMPORTANT:
+
+                        Questions must be specifically relevant to the target job.
+
+                        Do not generate five generic behavioral questions.
+
+                        Do not repeat the same competency or scenario.
+
+                        Technical difficulty should be appropriate for the target job.
+
+                        Do not provide answers.
+
+                        Do not provide explanations.
+
+                        Return only JSON matching the supplied schema.
+                        """
                     ),
                 },
                 {
                     "role": "user",
                     "content": (
-                        f"Target job: {request.target_job}\n"
-                        "Generate exactly five behavioral interview questions."
+                        f"Target job: {request.target_job}\n\n"
+                        "Generate exactly five interview questions using the required "
+                        "question types."
                     ),
                 },
             ],
             response_schema=question_schema,
+            num_predict=500,
         )
 
         generated_questions = result.get("questions", [])
@@ -584,7 +733,7 @@ async def start_interview(
                 """,
                 (
                     current_user.user_id,
-                    "behavioral",
+                    "mixed",
                     request.target_job,
                     "active",
                     OLLAMA_MODEL,
@@ -594,10 +743,13 @@ async def start_interview(
             session_id = cursor.lastrowid
             stored_questions = []
 
-            for question_order, question_text in enumerate(
+            for question_order, item in enumerate(
                 generated_questions,
                 start=1,
             ):
+                question_text = item["question"]
+                question_type = item["question_type"]
+                
                 cursor.execute(
                     """
                     INSERT INTO Question (
@@ -611,7 +763,7 @@ async def start_interview(
                     (
                         session_id,
                         question_text.strip(),
-                        "behavioral",
+                        question_type,
                         question_order,
                     ),
                 )
@@ -621,6 +773,7 @@ async def start_interview(
                         question_id=cursor.lastrowid,
                         question_order=question_order,
                         question=question_text.strip(),
+                        question_type=question_type,
                     )
                 )
 
@@ -705,6 +858,7 @@ def complete_interview(
             SELECT
                 q.question_order,
                 q.question_text,
+                q.question_type,
                 a.response,
                 a.situation_score,
                 a.task_score,
@@ -824,7 +978,7 @@ async def submit_interview_answer(
 
         question_row = cursor.execute(
             """
-            SELECT q.question_text
+            SELECT q.question_text, q.question_type
             FROM Question q
             JOIN Interview i
               ON i.session_id = q.session_id
@@ -846,6 +1000,7 @@ async def submit_interview_answer(
         )
 
     question_text = question_row["question_text"]
+    question_type = question_row["question_type"]
 
     feedback_schema = {
         "type": "object",
@@ -921,12 +1076,16 @@ async def submit_interview_answer(
                 responsibility, objective, or challenge.
 
                 Action:
-                Evaluate how clearly and specifically the candidate explains
-                the actions they personally took.
+                Evaluate how clearly the candidate explains the important actions
+                they personally took. Give credit for meaningful problem solving,
+                decision making, communication, collaboration, leadership, or
+                technical work even if every individual step is not described.
 
                 Result:
-                Evaluate how clearly the candidate explains the outcome,
-                impact, measurable result, or lesson learned.
+                Evaluate how clearly the candidate explains the outcome, impact,
+                what happened because of their actions, or what they learned.
+
+                A measurable result is helpful but is not required for a strong score.
 
                 Scoring guidance:
 
@@ -972,6 +1131,7 @@ async def submit_interview_answer(
                         },
                     ],
                 response_schema=feedback_schema,
+                num_predict=400,
     )
 
     scores = evaluation["scores"]
