@@ -3,10 +3,12 @@ import os
 from contextlib import contextmanager
 from typing import Optional, List, Dict, Any
 
-
+#connects schema of database to database python file.
 SCHEMA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
 
-
+# class defined to handle all cursor functionality of backend to the database.
+# constructor sets path and connect to sqlite server.
+#
 class InterviewIQDB:
     def __init__(self, db_path: str = "interviewiq.db"):
         self.db_path = db_path
@@ -15,8 +17,8 @@ class InterviewIQDB:
         self.conn.execute("PRAGMA foreign_keys = ON")
         self._init_schema()
 
-    # ---------- setup / teardown ----------
 
+    # connects and disconnects database.
     def _init_schema(self):
         with open(SCHEMA_FILE, "r") as f:
             self.conn.executescript(f.read())
@@ -31,6 +33,7 @@ class InterviewIQDB:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+    # cursor is the pointer to each item in the database.
     @contextmanager
     def _cursor(self):
         cur = self.conn.cursor()
@@ -47,8 +50,8 @@ class InterviewIQDB:
     def _row_to_dict(row: Optional[sqlite3.Row]) -> Optional[Dict[str, Any]]:
         return dict(row) if row is not None else None
 
-    # ---------- User ----------
-
+    
+    # definitions for user information.
     def create_user(self, f_name: str, l_name: str, password_hash: str, email: str) -> int:
         with self._cursor() as cur:
             cur.execute(
@@ -72,8 +75,8 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM User WHERE user_id = ?", (user_id,))
 
-    # ---------- Profile ----------
-
+    
+    # definitions for profile information.
     def create_profile(
         self,
         user_id: int,
@@ -103,8 +106,7 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM Profile WHERE profile_id = ?", (profile_id,))
 
-    # ---------- Interview ----------
-
+    # definitions for interview information.
     def create_interview(
         self,
         user_id: int,
@@ -145,8 +147,7 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM Interview WHERE session_id = ?", (session_id,))
 
-    # ---------- Question ----------
-
+    # definitions for all question definitions
     def create_question(self, session_id: int, question_text: str, question_type: str = None) -> int:
         with self._cursor() as cur:
             cur.execute(
@@ -172,8 +173,7 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM Question WHERE question_id = ?", (question_id,))
 
-    # ---------- Answer ----------
-
+    # definitions for answer information
     def create_answer(
         self,
         question_id: int,
@@ -218,8 +218,7 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM Answer WHERE answer_id = ?", (answer_id,))
 
-    # ---------- Feedback ----------
-
+    # defintions for feedback information.
     def create_feedback(
         self,
         answer_id: int,
@@ -246,8 +245,9 @@ class InterviewIQDB:
         with self._cursor() as cur:
             cur.execute("DELETE FROM Feedback WHERE feedback_id = ?", (feedback_id,))
 
-    # ---------- composite / convenience queries ----------
-
+   
+    # AI Assistance: The below two items were supplied by AI to help supply a collection of information that
+    # is need for the feedback page.
     def get_full_session(self, session_id: int) -> Dict[str, Any]:
         """Returns an interview session with its questions, each answer, and feedback nested."""
         interview = self.get_interview(session_id)
