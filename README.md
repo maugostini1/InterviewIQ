@@ -1,10 +1,9 @@
 ## Key Features:
 
 1. User Authentication
-2. Resume Uploader
-3. Mock Interview with Time Limit
-4. AI Answer Evaluations
-5. Progress Dashboard
+2. Mock Interview with Time Limit
+3. AI Answer Evaluations
+4. Progress Dashboard
 
 ## User Requirements:
 
